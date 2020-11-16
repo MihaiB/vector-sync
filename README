@@ -1,11 +1,6 @@
 Synchronize directory replicas using version vectors.
 
 
-Run
-
-./main.py --help
-
-
 Version Vectors
 
 A Version Vector is a map from replica IDs (strings) to counters (integers).
@@ -48,3 +43,8 @@ This has not been written to disk, only calculated in memory.
 - else if Va ⊑ Vb, replace A's dir with Db, set A and B's metadata to (Vb, Db)
 - else if Vb ⊑ Va, replace B's dir with Da, set A and B's metadata to (Va, Da)
 - else error: diverged, the user must match the tress then run the sync again
+
+
+Run
+
+./main.py --help
