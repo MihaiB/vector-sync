@@ -1,0 +1,18 @@
+jobs:
+  job:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: step
+        run: .github/workflows/workflow.sh
+
+name: workflow
+
+'on':
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+  schedule:
+    # generated randomly
+    - cron: '21 20 * * THU'
