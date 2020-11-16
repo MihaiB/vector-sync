@@ -1,6 +1,11 @@
 Synchronize directory replicas using version vectors.
 
 
+Run
+
+./main.py --help
+
+
 Version Vectors
 
 A Version Vector is a map from replica IDs (strings) to counters (integers).
