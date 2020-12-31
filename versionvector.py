@@ -33,24 +33,16 @@ def checkVersionVector(vv):
     >>> checkVersionVector({'a': 3, 'b': '4'})
     Traceback (most recent call last):
     ValueError: counter is not int
-    >>> checkVersionVector({'R': 1, 'S': None})
+    >>> checkVersionVector({'R': 0, 'S': None})
     Traceback (most recent call last):
     ValueError: counter is not int
-    >>> checkVersionVector({'i': 1, 'f': 2.0})
+    >>> checkVersionVector({'i': 0, 'f': 2.0})
     Traceback (most recent call last):
     ValueError: counter is not int
 
     Accepts a dict from str to int:
     >>> checkVersionVector({'X': 1})
-    >>> checkVersionVector({'A': 3, 'B': 5})
-
-    Fails if a counter is ≤ 0:
-    >>> checkVersionVector({'a': 0, 'b': 4})
-    Traceback (most recent call last):
-    ValueError: counter is ≤ 0
-    >>> checkVersionVector({'J': 7, 'K': -1, 'L': 9})
-    Traceback (most recent call last):
-    ValueError: counter is ≤ 0
+    >>> checkVersionVector({'A': 0, 'B': 5})
     """
     if type(vv) is not dict:
         raise ValueError('not a dict')
@@ -58,8 +50,6 @@ def checkVersionVector(vv):
         raise ValueError('key is not str')
     if any(type(counter) is not int for counter in vv.values()):
         raise ValueError('counter is not int')
-    if any(counter <= 0 for counter in vv.values()):
-        raise ValueError('counter is ≤ 0')
 
 
 def leq(x, y):
@@ -68,7 +58,6 @@ def leq(x, y):
 
     >>> leq({}, {'A':1})
     True
-
     >>> leq({'A':1} , {'A':1})
     True
     >>> leq({'A':1}, {'A':2, 'B':3})
