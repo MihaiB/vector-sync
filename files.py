@@ -17,7 +17,7 @@ def newHashObj():
 
 def hashBytes(b):
     """
-    Computes the hexdigest of b.
+    Compute the hexdigest of the bytes.
 
     Computes the hash of a bytes object:
     >>> hashBytes(b'')
@@ -32,7 +32,7 @@ def hashBytes(b):
 
 def hashFile(fileName):
     """
-    Returns hashBytes() for the contents of the file.
+    Compute the hexdigest of the file contents.
 
     Computes the hash of an empty file:
     >>> with tempfile.NamedTemporaryFile() as f:
