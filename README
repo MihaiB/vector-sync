@@ -22,7 +22,7 @@ X ⊑ Y ⇔ every replica ID in X exists in Y and its X counter ≤ its Y counte
 (In principle: X is before Y or X is identical to Y.)
 
 X ⊔ Y (join) has the union of X and Y's replica IDs.
-A replica ID's counter is the maximum of its couters in X and Y
+A replica ID's counter is the maximum of its counters in X and Y
 if it is present in both, else its counter from X or Y where it is present.
 
 {A:1} ⊔ {A:2}	= {A:2}
