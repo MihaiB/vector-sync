@@ -4,6 +4,9 @@ import os, os.path
 import tempfile
 
 
+META_FILE_NAME = '.vector-sync'
+
+
 def newHashObj():
     """
     Return a new hash object.

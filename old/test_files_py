@@ -1,24 +1,9 @@
 import contextlib
-import files
 import io
 import itertools
-import os, os.path
 import shutil
 import tempfile
-import unittest
 import unittest.mock
-
-
-class TestMetaFile(unittest.TestCase):
-
-    def testStartsWithDot(self):
-        self.assertTrue(files.metaFile.startswith('.'))
-
-    def testDoesNotEndWithDot(self):
-        self.assertFalse(files.metaFile.endswith('.'))
-
-    def testDoesNotContainPathSeparator(self):
-        self.assertEqual(files.metaFile.find(os.sep), -1)
 
 
 class TestGetTreeHash(unittest.TestCase):
