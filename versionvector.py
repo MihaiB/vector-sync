@@ -21,7 +21,7 @@ def check(vv):
     Accepts the empty dict:
     >>> check({})
 
-    Fails is a key is not str:
+    Fails if a key is not str:
     >>> check({'a': 1, 2: 2})
     Traceback (most recent call last):
     ValueError: key is not str

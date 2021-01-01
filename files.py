@@ -144,7 +144,7 @@ def check_hash_tree(hash_tree):
     Accepts empty dict:
     >>> check_hash_tree({})
 
-    Fails if a key not str:
+    Fails if a key is not str:
     >>> check_hash_tree({'a': hash_bytes(b''), None: hash_bytes(b'')})
     Traceback (most recent call last):
     ValueError: key not str
@@ -152,7 +152,7 @@ def check_hash_tree(hash_tree):
     Traceback (most recent call last):
     ValueError: key not str
 
-    Fails if a value not str:
+    Fails if a value is not str:
     >>> check_hash_tree({'a': hash_bytes(b''), 'b': None})
     Traceback (most recent call last):
     ValueError: value not str
