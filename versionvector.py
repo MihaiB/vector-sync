@@ -102,25 +102,25 @@ def join(x, y):
             for k in x.keys() | y.keys()}
 
 
-def increment(key, vv):
+def advance(key, vv):
     """
     Return a new dict with key's value incremented if present else set to 1.
 
-    >>> increment('A', {})
+    >>> advance('A', {})
     {'A': 1}
-    >>> sorted(increment('K', {'A': 4, 'Z': 7}).items())
+    >>> sorted(advance('K', {'A': 4, 'Z': 7}).items())
     [('A', 4), ('K', 1), ('Z', 7)]
-    >>> sorted(increment('B', {'A': 3, 'B': 6, 'C': 12}).items())
+    >>> sorted(advance('B', {'A': 3, 'B': 6, 'C': 12}).items())
     [('A', 3), ('B', 7), ('C', 12)]
 
     It returns a different dict:
-    >>> all(increment('B', v) is not v for v in ({}, {'B': 5}))
+    >>> all(advance('B', v) is not v for v in ({}, {'B': 5}))
     True
 
     The argument is not modified:
     >>> original = {'A': 2, 'Z': 1}
     >>> copy = dict(original)
-    >>> sorted(increment('Z', original).items())
+    >>> sorted(advance('Z', original).items())
     [('A', 2), ('Z', 2)]
     >>> copy == original
     True
