@@ -76,3 +76,55 @@ def leq(x, y):
     True
     """
     return all(k in y and x[k] <= y[k] for k in x)
+
+
+def join(x, y):
+    """
+    Returns x ⊔ y.
+
+    x ⊔ y has the union of x and y's replica IDs.
+    A replica ID's counter is the maximum of its counters in x and y
+    if it is present in both, else its counter from x or y where it is present.
+
+    >>> join({'A':1}, {'A':2})
+    {'A': 2}
+    >>> sorted(join({'A':1}, {'B':2}).items())
+    [('A', 1), ('B', 2)]
+    >>> sorted(join({'A':1, 'B':4, 'C':2, 'D':6},
+    ...     {'B':3, 'C':2, 'D':7, 'E':9}).items())
+    [('A', 1), ('B', 4), ('C', 2), ('D', 7), ('E', 9)]
+
+    ∀ x: join(x, x) = x
+    >>> all(join(x, x) == x for x in [{}, {'A': 1, 'Z': 26}])
+    True
+    """
+    return {k: max(x.get(k, y.get(k)), y.get(k, x.get(k)))
+            for k in x.keys() | y.keys()}
+
+
+def advance(key, vv):
+    """
+    Return a new dict with key's value incremented if present else set to 1.
+
+    >>> advance('A', {})
+    {'A': 1}
+    >>> sorted(advance('K', {'A': 4, 'Z': 7}).items())
+    [('A', 4), ('K', 1), ('Z', 7)]
+    >>> sorted(advance('B', {'A': 3, 'B': 6, 'C': 12}).items())
+    [('A', 3), ('B', 7), ('C', 12)]
+
+    It returns a different dict:
+    >>> all(advance('B', v) is not v for v in ({}, {'B': 5}))
+    True
+
+    The argument is not modified:
+    >>> original = {'A': 2, 'Z': 1}
+    >>> copy = dict(original)
+    >>> sorted(advance('Z', original).items())
+    [('A', 2), ('Z', 2)]
+    >>> copy == original
+    True
+    """
+    copy = dict(vv)
+    copy[key] = copy.get(key, 0) + 1
+    return copy
