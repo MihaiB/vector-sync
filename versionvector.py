@@ -1,13 +1,13 @@
 """
-A version vector maps replica IDs (strings) to int counters.
+A version vector is a dictionary from replica IDs (strings) to counters (ints).
 """
 
 
-def checkVersionVector(v):
+def checkVersionVector(vv):
     """
-    Raises ValueError if v is not a version vector.
+    Raises ValueError if vv is not a version vector.
 
-    Fails if not dictionary:
+    Fails if not dict:
     >>> checkVersionVector('hi')
     Traceback (most recent call last):
     ValueError: not a dict
@@ -18,10 +18,10 @@ def checkVersionVector(v):
     Traceback (most recent call last):
     ValueError: not a dict
 
-    Accepts empty dictionary:
+    Accepts empty dict:
     >>> checkVersionVector({})
 
-    Fails is some key is not str:
+    Fails is a key is not str:
     >>> checkVersionVector({'a': 1, 2: 2})
     Traceback (most recent call last):
     ValueError: key is not str
@@ -29,33 +29,35 @@ def checkVersionVector(v):
     Traceback (most recent call last):
     ValueError: key is not str
 
-    Fails if some value is not int:
+    Fails if a counter is not int:
     >>> checkVersionVector({'a': 3, 'b': '4'})
     Traceback (most recent call last):
-    ValueError: value is not int
+    ValueError: counter is not int
     >>> checkVersionVector({'R': 0, 'S': None})
     Traceback (most recent call last):
-    ValueError: value is not int
+    ValueError: counter is not int
     >>> checkVersionVector({'i': 0, 'f': 2.0})
     Traceback (most recent call last):
-    ValueError: value is not int
+    ValueError: counter is not int
 
     Accepts a dict from str to int:
     >>> checkVersionVector({'X': 1})
     >>> checkVersionVector({'A': 0, 'B': 5})
     """
-    if type(v) is not dict:
+    if type(vv) is not dict:
         raise ValueError('not a dict')
-    if any(type(k) is not str for k in v):
+    if any(type(k) is not str for k in vv):
         raise ValueError('key is not str')
-    if any(type(v) is not int for v in v.values()):
-        raise ValueError('value is not int')
+    if any(type(counter) is not int for counter in vv.values()):
+        raise ValueError('counter is not int')
 
 
 def leq(x, y):
     """
     X ⊑ Y ⇔ every replica ID in X is in Y and its X counter ≤ its Y counter.
 
+    >>> leq({}, {'A':1})
+    True
     >>> leq({'A':1} , {'A':1})
     True
     >>> leq({'A':1}, {'A':2, 'B':3})
@@ -98,8 +100,10 @@ def join(x, y):
 
 def makeIncrement(replicaID, versionVector):
     """
-    Make a copy of versionVector and increment replicaID's counter
-    or set it to 1 if it is absent.
+    Return a copy of versionVector with replicaID's counter incremented.
+
+    If replicaID is absent from versionVector its counter is set to 1
+    in the result.
 
     >>> makeIncrement('A', {})
     {'A': 1}

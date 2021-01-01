@@ -1,2 +1,25 @@
 The project is undergoing a rewrite. The latest stable version is commit:
 53046f80cea217c2f56582b689b8222e587c6e26
+
+
+Synchronize directory replicas using version vectors.
+
+
+Version Vectors
+
+A Version Vector is a map from replica IDs (strings) to counters (integers).
+
+X ⊑ Y ⇔ every replica ID in X exists in Y and its X counter ≤ its Y counter.
+{}		⊑ {A:1}
+{A:1}		⊑ {A:1}
+{A:1}		⊑ {A:2, B:3}
+{A:1, B:2}	⋢ {B:3}
+{A:1, B:2}	⋢ {A:3, B:1}
+{A:1, B:2}	⊑ {A:1, B:3}
+
+X ⊔ Y (join) has the union of X and Y's replica IDs.
+A replica ID's counter is the maximum of its couters in X and Y
+if it is present in both, else its counter from X or Y where it is present.
+{A:1} ⊔ {A:2}	= {A:2}
+{A:1} ⊔ {B:2}	= {A:1, B:2}
+{A:1, B:4, C:2, D:6} ⊔ {B:3, C:2, D:7, E:9} = {A:1, B:4, C:2, D:7, E:9}
