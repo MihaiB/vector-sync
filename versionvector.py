@@ -100,8 +100,10 @@ def join(x, y):
 
 def makeIncrement(replicaID, versionVector):
     """
-    Make a copy of versionVector and increment replicaID's counter
-    or set it to 1 if it is absent.
+    Return a copy of versionVector with replicaID's counter incremented.
+
+    If replicaID is absent from versionVector its counter is set to 1
+    in the result.
 
     >>> makeIncrement('A', {})
     {'A': 1}
