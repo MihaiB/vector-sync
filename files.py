@@ -147,21 +147,21 @@ def check_hash_tree(hash_tree):
     Fails if a key is not str:
     >>> check_hash_tree({'a': hash_bytes(b''), None: hash_bytes(b'')})
     Traceback (most recent call last):
-    ValueError: key not str
+    ValueError: key is not str
     >>> check_hash_tree({'a': hash_bytes(b''), 5: hash_bytes(b'')})
     Traceback (most recent call last):
-    ValueError: key not str
+    ValueError: key is not str
 
     Fails if a value is not str:
     >>> check_hash_tree({'a': hash_bytes(b''), 'b': None})
     Traceback (most recent call last):
-    ValueError: value not str
+    ValueError: value is not str
     >>> check_hash_tree({'a': hash_bytes(b''), 'x': b''})
     Traceback (most recent call last):
-    ValueError: value not str
+    ValueError: value is not str
     >>> check_hash_tree({'a': hash_bytes(b''), 'B': 5})
     Traceback (most recent call last):
-    ValueError: value not str
+    ValueError: value is not str
 
     Accepts a dict from str to str:
     >>> check_hash_tree({'R': hash_bytes(b'')})
@@ -170,6 +170,6 @@ def check_hash_tree(hash_tree):
     if type(hash_tree) is not dict:
         raise ValueError('not a dict')
     if any(type(k) is not str for k in hash_tree):
-        raise ValueError('key not str')
+        raise ValueError('key is not str')
     if any(type(v) is not str for v in hash_tree.values()):
-        raise ValueError('value not str')
+        raise ValueError('value is not str')
