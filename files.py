@@ -66,10 +66,13 @@ def hash_file(filename):
     Traceback (most recent call last):
     FileNotFoundError
     """
+    h = new_hash_obj()
+
     with open(filename, 'rb') as f:
-        h = new_hash_obj()
         while True:
             b = f.read(io.DEFAULT_BUFFER_SIZE)
             if not b:
-                return h.hexdigest()
+                break
             h.update(b)
+
+    return h.hexdigest()
