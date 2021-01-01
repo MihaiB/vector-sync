@@ -4,6 +4,9 @@ import os, os.path
 import tempfile
 
 
+META_FILE = '.vector-sync'
+
+
 def new_hash_obj():
     """
     Return a new hash object.
@@ -76,3 +79,97 @@ def hash_file(filename):
             h.update(b)
 
     return h.hexdigest()
+
+
+def hash_file_tree(tree_path):
+    """
+    Map all files in the tree to their hash.
+
+    META_FILE descendants are excluded.
+
+    Error for missing tree:
+    >>> with tempfile.TemporaryDirectory() as d:
+    ...     hash_file_tree(os.path.join(d, 'a'))
+    ... # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    FileNotFoundError
+    >>> with tempfile.TemporaryDirectory() as d:
+    ...     hash_file_tree(os.path.join(d, 'a', 'b'))
+    ... # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    FileNotFoundError
+
+    Error for file:
+    >>> with tempfile.NamedTemporaryFile() as f:
+    ...     hash_file_tree(f.name)
+    ... # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    NotADirectoryError
+
+    Error for descendant of a file:
+    >>> with tempfile.NamedTemporaryFile() as f:
+    ...     hash_file_tree(os.path.join(f.name, 'x'))
+    ... # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    NotADirectoryError
+    """
+    hash_tree = {}
+    for item in os.scandir(tree_path):
+        if item.name == META_FILE:
+            continue
+        item_path = os.path.join(tree_path, item.name)
+        if item.is_file():
+            hash_tree[item.name] = hash_file(item_path)
+        if item.is_dir():
+            hash_tree.update({os.path.join(item.name, k): v
+                for k, v in hash_file_tree(item_path).items()})
+    return hash_tree
+
+
+def check_hash_tree(hash_tree):
+    """
+    Raises ValueError if hash_tree is not a hash tree.
+
+    Fails if not dict:
+    >>> check_hash_tree('hi')
+    Traceback (most recent call last):
+    ValueError: not a dict
+    >>> check_hash_tree(None)
+    Traceback (most recent call last):
+    ValueError: not a dict
+    >>> check_hash_tree({'x', 'z'})
+    Traceback (most recent call last):
+    ValueError: not a dict
+
+    Accepts empty dict:
+    >>> check_hash_tree({})
+
+    Fails if a key not str:
+    >>> check_hash_tree({'a': hash_bytes(b''), None: hash_bytes(b'')})
+    Traceback (most recent call last):
+    ValueError: key not str
+    >>> check_hash_tree({'a': hash_bytes(b''), 5: hash_bytes(b'')})
+    Traceback (most recent call last):
+    ValueError: key not str
+
+    Fails if a value not str:
+    >>> check_hash_tree({'a': hash_bytes(b''), 'b': None})
+    Traceback (most recent call last):
+    ValueError: value not str
+    >>> check_hash_tree({'a': hash_bytes(b''), 'x': b''})
+    Traceback (most recent call last):
+    ValueError: value not str
+    >>> check_hash_tree({'a': hash_bytes(b''), 'B': 5})
+    Traceback (most recent call last):
+    ValueError: value not str
+
+    Accepts a dict from str to str:
+    >>> check_hash_tree({'R': hash_bytes(b'')})
+    >>> check_hash_tree({'X': hash_bytes(b'x'), 'Y': hash_bytes(b'not')})
+    """
+    if type(hash_tree) is not dict:
+        raise ValueError('not a dict')
+    if any(type(k) is not str for k in hash_tree):
+        raise ValueError('key not str')
+    if any(type(v) is not str for v in hash_tree.values()):
+        raise ValueError('value not str')
