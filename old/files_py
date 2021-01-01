@@ -4,9 +4,6 @@ import shutil
 import versionvector
 
 
-metaFile = '.vector-sync'
-
-
 def getTreeHash(directory):
     """
     Map all files in the tree under directory to their hash.
