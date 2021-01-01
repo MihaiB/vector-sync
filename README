@@ -30,3 +30,32 @@ if it is present in both, else its counter from X or Y where it is present.
 {A:1, B:4, C:2, D:6} ⊔ {B:3, C:2, D:7, E:9} = {A:1, B:4, C:2, D:7, E:9}
 
 (In principle: synchronizing X and Y results in X ⊔ Y. X ⊑ Y ⇔ X ⊔ Y = Y.)
+
+
+Replicas
+
+A replica is a directory containing the file '.vector-sync'. This file stores:
+- ID: the unique name of the replica.
+- version vector: {replica_id1: counter1, replica_id2: counter2, …}.
+- files: {path1: hash1, path2: hash2, …} excluding '.vector-sync' descendants.
+
+Initializing a new replica with ID A creates a '.vector-sync' file containing:
+- ID: A
+- version vector: {}
+- files: {}
+
+
+Synchronizing replicas A and B
+
+For each replica R in {A, B}:
+- Vr ← version vector, Kr ← known '.vector-sync' files, Dr ← directory content.
+- If Dr ≠ Kr, increment R's counter in Vr (set it to 1 if R is not in Vr).
+Nothing has been written to disk, only calculated in memory.
+
+If Da = Db, D ← Da
+else if Va = Vb, stop: the user must reconcile the dirs then run the sync again
+else if Va ⊑ Vb, D ← Db
+else if Vb ⊑ Va, D ← Da
+else stop: diverged, the user must reconcile the dirs then run the sync again
+
+Replace the directory content and '.vector-sync' in A and B with: Va ⊔ Vb, D.
