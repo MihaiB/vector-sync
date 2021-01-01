@@ -1,30 +1,7 @@
 
 
-Replicas
-
-A replica is a directory. The file '.vector-sync' in its root stores:
-- ID (name) of the replica.
-- version vector: {replica_id1: counter1, replica_id2: counter2, …}.
-- files: {path1: hash1, path2: hash2, …} for each file.
-All '.vector-sync' descendants of the directory are excluded from the sync.
-
-Initializing a new replica with ID A creates the metadata file:
-- ID: A
-- version vector: {}
-- files: {}
-
-Synchronizing replicas A and B:
-For each replica R in {A, B}:
-Vr ← version vector, Mr ← 'files' metadata, Dr ← directory content.
-If Dr ≠ Mr, increment R's counter in Vr (set it to 1 if R is not in Vr).
-This has not been written to disk, only calculated in memory.
-- If Da = Db, set A and B's metadata to (Va ⊔ Vb, Da)
-- else if Va = Vb, error: the user must match the trees then run the sync again
-- else if Va ⊑ Vb, replace A's dir with Db, set A and B's metadata to (Vb, Db)
-- else if Vb ⊑ Va, replace B's dir with Da, set A and B's metadata to (Va, Da)
-- else error: diverged, the user must match the tress then run the sync again
-
-
 Run
 
 ./main.py --help
+
+TODO: run --help for subcommands too, both in the README and in GitHub Actions.
