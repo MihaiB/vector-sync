@@ -497,3 +497,93 @@ def copy_down(src, dest):
     if parent:
         os.makedirs(parent, exist_ok=True)
     shutil.copyfile(src, dest)
+
+
+def check_tree_change(tree_change):
+    """
+    Raises ValueError if tree_change is not a tree change.
+
+    Fails if not dict:
+    >>> check_tree_change(set())
+    Traceback (most recent call last):
+    ValueError: tree change is not dict
+    >>> check_tree_change(None)
+    Traceback (most recent call last):
+    ValueError: tree change is not dict
+
+    Fails if dict keys aren't exactly the expected ones:
+    >>> check_tree_change({})
+    Traceback (most recent call last):
+    ValueError: invalid tree change keys
+    >>> check_tree_change({'delete': set()})
+    Traceback (most recent call last):
+    ValueError: invalid tree change keys
+    >>> check_tree_change({'delete': set(), 'copy': set(), 'extraKey': set()})
+    Traceback (most recent call last):
+    ValueError: invalid tree change keys
+    >>> check_tree_change({'delete': set(), 'Copy': set()})
+    Traceback (most recent call last):
+    ValueError: invalid tree change keys
+
+    Fails if a value is not a set:
+    >>> check_tree_change({'delete': set(), 'copy': dict()})
+    Traceback (most recent call last):
+    ValueError: tree change files are not a set
+
+    Fails if a value contains a non-str element:
+    >>> check_tree_change({'delete': set(), 'copy': {'a', 24, 'z'}})
+    Traceback (most recent call last):
+    ValueError: tree change file is not str
+
+    Accepts a valid tree change:
+    >>> check_tree_change({'delete': set(), 'copy': set()})
+    >>> check_tree_change({'delete': {'list'}, 'copy': {'lecture', 'notes'}})
+    """
+    if type(tree_change) is not dict:
+        raise ValueError('tree change is not dict')
+    if set(tree_change.keys()) != {'delete', 'copy'}:
+        raise ValueError('invalid tree change keys')
+    if any(type(v) is not set for v in tree_change.values()):
+        raise ValueError('tree change files are not a set')
+    if any(type(f) is not str for v in tree_change.values() for f in v):
+        raise ValueError('tree change file is not str')
+
+
+def get_tree_change(start, end):
+    """
+    Compute the files to be deleted and copied to transform start into end.
+
+    >>> tc = get_tree_change({}, {'a': hash_bytes(b''), 'x': hash_bytes(b'X')})
+    >>> tc == {'delete': set(), 'copy': {'a', 'x'}}
+    True
+
+    >>> tc = get_tree_change({'1': hash_bytes(b'1'), '9': hash_bytes(b'0')},
+    ...     {})
+    >>> tc == {'delete': {'1', '9'}, 'copy': set()}
+    True
+
+    >>> tc = get_tree_change({
+    ...     'task': hash_bytes(b'dishes'),
+    ...     'v': hash_bytes(b'1'),
+    ...     'trash': hash_bytes(b't'),
+    ...     'bin': hash_bytes(b'b'),
+    ...     'i': hash_bytes(b''),
+    ... }, {
+    ...     'task': hash_bytes(b'laundry'),
+    ...     'v': hash_bytes(b'2'),
+    ...     'prj': hash_bytes(b''),
+    ...     'w': hash_bytes(b''),
+    ...     'i': hash_bytes(b''),
+    ... })
+    >>> tc == {'delete': {'trash', 'bin'}, 'copy': {'task', 'v', 'prj', 'w'}}
+    True
+    """
+    check_hash_tree(start)
+    check_hash_tree(end)
+
+    tree_change = {
+        'delete': {f for f in start if f not in end},
+        'copy': {f for f in end if f not in start or start[f] != end[f]},
+    }
+    check_tree_change(tree_change)
+    return tree_change
