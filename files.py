@@ -588,3 +588,37 @@ def get_tree_change(start, end):
     }
     check_tree_change(tree_change)
     return tree_change
+
+
+def confirm_tree_change(tree_change, replica_id):
+    """
+    Ask the user to confirm (if the change is not empty) and return bool.
+
+    Returns True without asking the user if the change is empty.
+
+    Fails if replica_id is not str:
+    >>> confirm_tree_change({'delete': set(), 'copy': set()}, None)
+    Traceback (most recent call last):
+    ValueError: replica_id is not str
+    """
+    check_tree_change(tree_change)
+    if type(replica_id) is not str:
+        raise ValueError('replica_id is not str')
+
+    found = False
+    for pathset, title, char in (
+            (tree_change['delete'], 'Delete',   '-'),
+            (tree_change['copy'],   'Copy',     '+'),
+            ):
+        if not pathset:
+            continue
+        found = True
+        print(f'• {title}:')
+        for path in sorted(pathset):
+            print(char, path)
+        print()
+
+    if not found:
+        return True
+
+    return input('Change ' + replica_id + '? [y/N] ') == 'y'

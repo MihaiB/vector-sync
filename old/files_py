@@ -1,29 +1,3 @@
-def confirmTreeChange(treeChange, replicaID):
-    """
-    Ask the user to confirm the change and return bool.
-
-    Returns True without asking for confirmation if the change is empty.
-    """
-    found = False
-    for pathSet, title, char in (
-            (treeChange.add,        'New',      '+'),
-            (treeChange.delete,     'Deleted',  '−'),
-            (treeChange.overwrite,  'Changed',  '≠'),
-            ):
-        if not pathSet:
-            continue
-        found = True
-        print('•', title, 'files:')
-        for path in sorted(pathSet):
-            print(char, path)
-        print()
-
-    if not found:
-        return True
-
-    return input('Make changes to ' + replicaID + '? [y/N] ').upper() == 'Y'
-
-
 def applyTreeChange(treeChange, *, src, dest):
     """
     Apply the TreeChange to dest, reading files from src.

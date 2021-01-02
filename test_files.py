@@ -1,4 +1,6 @@
+import contextlib
 import files
+import io
 import os, os.path
 import shutil
 import tempfile
@@ -168,3 +170,47 @@ class TestCopyDown(unittest.TestCase):
         files.copy_down(src, dest)
         self.makedirs_mock.assert_called_once_with('my/dest', exist_ok=True)
         self.copyfile_mock.assert_called_once_with(src, dest)
+
+
+class TestConfirmTreeChange(unittest.TestCase):
+
+    @unittest.mock.patch('builtins.input', spec_set=True)
+    def test_without_change(self, stdin):
+        stdout = io.StringIO()
+        with contextlib.redirect_stdout(stdout):
+            result = files.confirm_tree_change(
+                    {'delete': set(), 'copy': set()}, 'X')
+        self.assertEqual(stdout.getvalue(), '')
+        stdin.assert_not_called()
+        self.assertEqual(result, True)
+
+    @unittest.mock.patch('builtins.input', spec_set=True)
+    def test_with_change(self, stdin):
+        stdout = io.StringIO()
+        with contextlib.redirect_stdout(stdout):
+            files.confirm_tree_change({'delete': {'bad', 'old'},
+                'copy': {'mutant', 'altered', 'hello', 'hola'}}, 'R')
+        self.assertEqual(stdout.getvalue(), '''• Delete:
+- bad
+- old
+
+• Copy:
++ altered
++ hello
++ hola
++ mutant
+
+''')
+        stdin.assert_called_once_with('Change R? [y/N] ')
+
+    @unittest.mock.patch('sys.stdout', spec_set=True)   # silence output
+    def test_input(self, stdout):
+        tree_change = {'delete': set(), 'copy': {'a'}}
+        for answer, expected in {
+                '': False, 'n': False, 'x': False, 'smth': False, 'yes': False,
+                'y': True, 'Y': False,
+                }.items():
+            with unittest.mock.patch('builtins.input', spec_set=True,
+                    return_value=answer):
+                confirmed = files.confirm_tree_change(tree_change, 'a-replica')
+            self.assertEqual(confirmed, expected)
