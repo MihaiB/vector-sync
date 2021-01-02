@@ -1,45 +1,6 @@
 import copy
 import json
 import shutil
-import versionvector
-
-
-class MetaData:
-    """
-    A replica's metadata.
-
-
-    Implements comparison: == and !=
-    >>> MetaData('R', {'A': 2, 'B': 3}, {'users/jim': hashBytes(b'j'),
-    ...     'etc/config': hashBytes(b'cfg')}) == MetaData('R',
-    ...     {'A': 2, 'B': 3}, {'users/jim': hashBytes(b'j'),
-    ...     'etc/config': hashBytes(b'cfg')})
-    True
-    >>> MetaData('R', {'A': 2, 'B': 3}, {'users/jim': hashBytes(b'j'),
-    ...     'etc/config': hashBytes(b'cfg')}) != MetaData('R',
-    ...     {'A': 2, 'B': 3}, {'users/jim': hashBytes(b'j'),
-    ...     'etc/config': hashBytes(b'cfg')})
-    False
-    >>> MetaData('X', {'A': 1}, {}) == MetaData('Y', {'A': 1}, {})
-    False
-    >>> MetaData('X', {'A': 1}, {}) != MetaData('Y', {'A': 1}, {})
-    True
-    """
-
-    def __init__(self, replicaID, versionVector, treeHash):
-        if type(replicaID) is not str:
-            raise ValueError('replicaID not str')
-        versionvector.checkVersionVector(versionVector)
-        checkTreeHash(treeHash)
-
-        self.replicaID = replicaID
-        self.versionVector = versionVector
-        self.treeHash = treeHash
-
-    def __eq__(self, other):
-        def extract(md):
-            return md.replicaID, md.versionVector, md.treeHash
-        return extract(self) == extract(other)
 
 
 def setMetaData(metaData, directory, overwrite=False):
