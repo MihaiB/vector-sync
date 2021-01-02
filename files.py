@@ -450,7 +450,7 @@ def delete_up(path):
 
 def copy_down(src, dest):
     """
-    Copy file src to dest and create dest's parent if it does not exist.
+    Copy file src to dest, creating dest's parent if it does not exist.
 
     Copies a file to an existing directory:
     >>> with tempfile.TemporaryDirectory() as a:
