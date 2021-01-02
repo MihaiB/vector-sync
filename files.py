@@ -2,6 +2,7 @@ import hashlib
 import io
 import os, os.path
 import tempfile
+import versionvector
 
 
 META_FILE = '.vector-sync'
@@ -133,13 +134,13 @@ def check_hash_tree(hash_tree):
     Fails if not dict:
     >>> check_hash_tree('hi')
     Traceback (most recent call last):
-    ValueError: not a dict
+    ValueError: hash tree is not dict
     >>> check_hash_tree(None)
     Traceback (most recent call last):
-    ValueError: not a dict
+    ValueError: hash tree is not dict
     >>> check_hash_tree({'x', 'z'})
     Traceback (most recent call last):
-    ValueError: not a dict
+    ValueError: hash tree is not dict
 
     Accepts empty dict:
     >>> check_hash_tree({})
@@ -147,29 +148,85 @@ def check_hash_tree(hash_tree):
     Fails if a key is not str:
     >>> check_hash_tree({'a': hash_bytes(b''), None: hash_bytes(b'')})
     Traceback (most recent call last):
-    ValueError: key is not str
+    ValueError: hash tree key is not str
     >>> check_hash_tree({'a': hash_bytes(b''), 5: hash_bytes(b'')})
     Traceback (most recent call last):
-    ValueError: key is not str
+    ValueError: hash tree key is not str
 
     Fails if a value is not str:
     >>> check_hash_tree({'a': hash_bytes(b''), 'b': None})
     Traceback (most recent call last):
-    ValueError: value is not str
+    ValueError: hash tree value is not str
     >>> check_hash_tree({'a': hash_bytes(b''), 'x': b''})
     Traceback (most recent call last):
-    ValueError: value is not str
+    ValueError: hash tree value is not str
     >>> check_hash_tree({'a': hash_bytes(b''), 'B': 5})
     Traceback (most recent call last):
-    ValueError: value is not str
+    ValueError: hash tree value is not str
 
     Accepts a dict from str to str:
     >>> check_hash_tree({'R': hash_bytes(b'')})
     >>> check_hash_tree({'X': hash_bytes(b'x'), 'Y': hash_bytes(b'not')})
     """
     if type(hash_tree) is not dict:
-        raise ValueError('not a dict')
+        raise ValueError('hash tree is not dict')
     if any(type(k) is not str for k in hash_tree):
-        raise ValueError('key is not str')
+        raise ValueError('hash tree key is not str')
     if any(type(v) is not str for v in hash_tree.values()):
-        raise ValueError('value is not str')
+        raise ValueError('hash tree value is not str')
+
+
+def check_meta_data(md):
+    """
+    Raises ValueError if md is not metadata.
+
+    Fails if not dict:
+    >>> check_meta_data('')
+    Traceback (most recent call last):
+    ValueError: meta data is not dict
+    >>> check_meta_data(None)
+    Traceback (most recent call last):
+    ValueError: meta data is not dict
+    >>> check_meta_data({'a'})
+    Traceback (most recent call last):
+    ValueError: meta data is not dict
+
+    Fails if dict keys aren't exactly the expected ones:
+    >>> check_meta_data({})
+    Traceback (most recent call last):
+    ValueError: invalid meta data keys
+    >>> check_meta_data({'replicaID': None, 'versionVector': None})
+    Traceback (most recent call last):
+    ValueError: invalid meta data keys
+    >>> check_meta_data({'replicaID': None, 'versionVector': None,
+    ...     'hashTree': None, 'extraKey': None})
+    Traceback (most recent call last):
+    ValueError: invalid meta data keys
+    >>> check_meta_data({'replicaID': None, 'versionVector': None,
+    ...     'hashtree': None})
+    Traceback (most recent call last):
+    ValueError: invalid meta data keys
+
+    Fails if replicaID is not str:
+    >>> check_meta_data({'replicaID': 7, 'versionVector': {}, 'hashTree': {}})
+    Traceback (most recent call last):
+    ValueError: replicaID is not str
+
+    Fails if versionVector is not a version vector:
+    >>> check_meta_data({'replicaID': '', 'versionVector': 1, 'hashTree': {}})
+    Traceback (most recent call last):
+    ValueError: version vector is not dict
+
+    Fails is hashTree is not a hash tree:
+    >>> check_meta_data({'replicaID': '', 'versionVector': {}, 'hashTree': ''})
+    Traceback (most recent call last):
+    ValueError: hash tree is not dict
+    """
+    if type(md) is not dict:
+        raise ValueError('meta data is not dict')
+    if set(md.keys()) != {'replicaID', 'versionVector', 'hashTree'}:
+        raise ValueError('invalid meta data keys')
+    if type(md['replicaID']) is not str:
+        raise ValueError('replicaID is not str')
+    versionvector.check(md['versionVector'])
+    check_hash_tree(md['hashTree'])
