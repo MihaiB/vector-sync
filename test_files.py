@@ -76,6 +76,9 @@ class TestHashFileTree(unittest.TestCase):
                 'bike': {
                     'diagram': 'wheel'.encode('utf-8'),
                     'checklist': 'check'.encode('utf-8'),
+                    files.META_FILE: {
+                        'ignored-file': 'ignored-content'.encode('utf-8'),
+                    },
                 },
                 'charles': {
                     'robert': 'darwin'.encode('utf-8'),
