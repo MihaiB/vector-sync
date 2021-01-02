@@ -1,5 +1,6 @@
 import hashlib
 import io
+import json
 import os, os.path
 import tempfile
 import versionvector
@@ -234,3 +235,157 @@ def check_meta_data(md):
         raise ValueError('replicaID is not str')
     versionvector.check(md['versionVector'])
     check_hash_tree(md['hashTree'])
+
+
+def write_meta_data(meta_data, directory, *, overwrite):
+    """
+    Write meta_data to META_FILE in directory.
+
+    Fails for invalid meta data:
+    >>> with tempfile.TemporaryDirectory() as d:
+    ...     write_meta_data({'replicaID': '', 'treeHash': {}}, d,
+    ...         overwrite=True)
+    Traceback (most recent call last):
+    ValueError: invalid meta data keys
+
+    >>> def make_md():
+    ...     return {
+    ...         'replicaID': 'Backup',
+    ...         'versionVector': {'Laptop': 3, 'Backup': 2},
+    ...         'hashTree': {
+    ...             'school/homework': hash_bytes('essay'.encode('utf-8')),
+    ...             'diary/January': hash_bytes('Vector-Sync'.encode('utf-8')),
+    ...         },
+    ...     }
+
+    >>> def make_md_2():
+    ...     return {
+    ...         'replicaID': 'Alternative',
+    ...         'versionVector': {'Desktop': 5},
+    ...         'hashTree': {
+    ...             'book': hash_bytes('text'.encode('utf-8')),
+    ...         },
+    ...     }
+
+    >>> make_md() == make_md()
+    True
+    >>> make_md() is make_md()
+    False
+
+    >>> make_md_2() == make_md_2()
+    True
+    >>> make_md_2() is make_md_2()
+    False
+
+    >>> make_md() == make_md_2()
+    False
+
+    Throws an exception if the directory does not exist:
+    >>> with tempfile.TemporaryDirectory() as d:
+    ...     write_meta_data(make_md(), os.path.join(d, 'child'),
+    ...         overwrite=True)
+    ... # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    FileNotFoundError
+
+    Throws an exception if called for a file:
+    >>> with tempfile.NamedTemporaryFile() as f:
+    ...     write_meta_data(make_md(), f.name, overwrite=True)
+    ... # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    NotADirectoryError
+
+    Creates a new metaFile in directory:
+    >>> with tempfile.TemporaryDirectory() as d:
+    ...     write_meta_data(make_md(), d, overwrite=False)
+    ...     with open(os.path.join(d, META_FILE), 'r', encoding='utf-8') as f:
+    ...         json.load(f) == make_md()
+    True
+
+    Does not overwrite metaFile with overwrite=False:
+    >>> with tempfile.TemporaryDirectory() as d:
+    ...     write_meta_data(make_md(), d, overwrite=False)
+    ...     try:
+    ...         write_meta_data(make_md_2(), d, overwrite=False)
+    ...     except FileExistsError:
+    ...         print('caught FileExistsError')
+    ...     with open(os.path.join(d, META_FILE), 'r', encoding='utf-8') as f:
+    ...         json.load(f) == make_md()
+    caught FileExistsError
+    True
+
+    Overwrites metaFile in directory with overwrite=True:
+    >>> with tempfile.TemporaryDirectory() as d:
+    ...     write_meta_data(make_md(), d, overwrite=False)
+    ...     meta_file_path = os.path.join(d, META_FILE)
+    ...     with open(meta_file_path, 'r', encoding='utf-8') as f:
+    ...         json.load(f) == make_md()
+    ...     write_meta_data(make_md_2(), d, overwrite=True)
+    ...     with open(meta_file_path, 'r', encoding='utf-8') as f:
+    ...         json.load(f) == make_md_2()
+    True
+    True
+    """
+    check_meta_data(meta_data)
+    mode = 'w' if overwrite else 'x'
+    with open(os.path.join(directory, META_FILE), mode, encoding='utf-8') as f:
+        json.dump(meta_data, f, indent=2, sort_keys=True)
+
+
+def read_meta_data(directory):
+    """
+    Read meta data from META_FILE in directory.
+
+    Throws an exception if the directory does not exist:
+    >>> with tempfile.TemporaryDirectory() as d:
+    ...     read_meta_data(os.path.join(d, 'child'))
+    ... # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    FileNotFoundError
+
+    Throws an exception if called for a file:
+    >>> with tempfile.NamedTemporaryFile() as f:
+    ...     read_meta_data(f.name) # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    NotADirectoryError
+
+    Throws an exception if metaFile is missing:
+    >>> with tempfile.TemporaryDirectory() as d:
+    ...     read_meta_data(d)  # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    FileNotFoundError
+
+    Throws an exception if the meta data is not valid:
+    >>> partial_data = {'replicaID': 'R', 'versionVector': {'R': 1}}
+    >>> with tempfile.TemporaryDirectory() as d:
+    ...     with open(os.path.join(d, META_FILE), 'w', encoding='utf-8') as f:
+    ...         json.dump(partial_data, f)
+    ...     read_meta_data(d)
+    Traceback (most recent call last):
+    ValueError: invalid meta data keys
+
+    >>> def make_md():
+    ...     return {
+    ...         'replicaID': 'Backup',
+    ...         'versionVector': {'Laptop': 3, 'Backup': 2},
+    ...         'hashTree': {
+    ...             'school/project': hash_bytes('essay'.encode('utf-8')),
+    ...             'diary/March': hash_bytes('Vector-Sync!'.encode('utf-8')),
+    ...         },
+    ...     }
+
+    >>> make_md() == make_md()
+    True
+    >>> make_md() is make_md()
+    False
+
+    Loads an existing META_FILE:
+    >>> with tempfile.TemporaryDirectory() as d:
+    ...     write_meta_data(make_md(), d, overwrite=False)
+    ...     read_meta_data(d) == make_md()
+    True
+    """
+    with open(os.path.join(directory, META_FILE), 'r', encoding='utf-8') as f:
+        meta_data = json.load(f)
+    check_meta_data(meta_data)
+    return meta_data
