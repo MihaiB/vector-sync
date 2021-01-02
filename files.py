@@ -295,14 +295,14 @@ def write_meta_data(meta_data, directory, *, overwrite):
     Traceback (most recent call last):
     NotADirectoryError
 
-    Creates a new metaFile in directory:
+    Creates a new META_FILE in directory:
     >>> with tempfile.TemporaryDirectory() as d:
     ...     write_meta_data(make_md(), d, overwrite=False)
     ...     with open(os.path.join(d, META_FILE), 'r', encoding='utf-8') as f:
     ...         json.load(f) == make_md()
     True
 
-    Does not overwrite metaFile with overwrite=False:
+    Does not overwrite META_FILE with overwrite=False:
     >>> with tempfile.TemporaryDirectory() as d:
     ...     write_meta_data(make_md(), d, overwrite=False)
     ...     try:
@@ -314,21 +314,21 @@ def write_meta_data(meta_data, directory, *, overwrite):
     caught FileExistsError
     True
 
-    Overwrites metaFile in directory with overwrite=True:
+    Overwrites META_FILE with overwrite=True:
     >>> with tempfile.TemporaryDirectory() as d:
     ...     write_meta_data(make_md(), d, overwrite=False)
-    ...     meta_file_path = os.path.join(d, META_FILE)
-    ...     with open(meta_file_path, 'r', encoding='utf-8') as f:
+    ...     with open(os.path.join(d, META_FILE), 'r', encoding='utf-8') as f:
     ...         json.load(f) == make_md()
     ...     write_meta_data(make_md_2(), d, overwrite=True)
-    ...     with open(meta_file_path, 'r', encoding='utf-8') as f:
+    ...     with open(os.path.join(d, META_FILE), 'r', encoding='utf-8') as f:
     ...         json.load(f) == make_md_2()
     True
     True
     """
     check_meta_data(meta_data)
+    meta_file_path = os.path.join(directory, META_FILE)
     mode = 'w' if overwrite else 'x'
-    with open(os.path.join(directory, META_FILE), mode, encoding='utf-8') as f:
+    with open(meta_file_path, mode, encoding='utf-8') as f:
         json.dump(meta_data, f, indent=2, sort_keys=True)
 
 
@@ -349,7 +349,7 @@ def read_meta_data(directory):
     Traceback (most recent call last):
     NotADirectoryError
 
-    Throws an exception if metaFile is missing:
+    Throws an exception if META_FILE is missing:
     >>> with tempfile.TemporaryDirectory() as d:
     ...     read_meta_data(d)  # doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
