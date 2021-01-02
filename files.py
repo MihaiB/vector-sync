@@ -578,8 +578,9 @@ def get_tree_change(start, end):
     >>> tc == {'delete': {'trash', 'bin'}, 'copy': {'task', 'v', 'prj', 'w'}}
     True
     """
-    check_hash_tree(start)
-    check_hash_tree(end)
+    for ht in (start, end):
+        check_hash_tree(ht)
+    del ht
 
     tree_change = {
         'delete': {f for f in start if f not in end},

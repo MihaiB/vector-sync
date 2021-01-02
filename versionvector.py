@@ -75,6 +75,10 @@ def leq(x, y):
     >>> all(leq(x, x) for x in ({}, {'A': 1, 'Z': 26}))
     True
     """
+    for vv in (x, y):
+        check(vv)
+    del vv
+
     return all(k in y and x[k] <= y[k] for k in x)
 
 
@@ -98,6 +102,10 @@ def join(x, y):
     >>> all(join(x, x) == x for x in [{}, {'A': 1, 'Z': 26}])
     True
     """
+    for vv in (x, y):
+        check(vv)
+    del vv
+
     return {k: max(x.get(k, y.get(k)), y.get(k, x.get(k)))
             for k in x.keys() | y.keys()}
 
@@ -105,6 +113,11 @@ def join(x, y):
 def advance(key, vv):
     """
     Return a new dict with key's value incremented if present else set to 1.
+
+    Fails if key is not str:
+    >>> advance(3, {})
+    Traceback (most recent call last):
+    ValueError: key to advance is not str
 
     >>> advance('A', {})
     {'A': 1}
@@ -125,6 +138,10 @@ def advance(key, vv):
     >>> copy == original
     True
     """
+    if type(key) is not str:
+        raise ValueError('key to advance is not str')
+    check(vv)
+
     copy = dict(vv)
     copy[key] = copy.get(key, 0) + 1
     return copy
