@@ -622,3 +622,12 @@ def confirm_tree_change(tree_change, replica_id):
         return True
 
     return input('Change ' + replica_id + '? [y/N] ') == 'y'
+
+
+def apply_tree_change(tree_change, *, src, dest):
+    """Apply tree_change to dest, reading files from src."""
+    check_tree_change(tree_change)
+    for path in tree_change['delete']:
+        delete_up(os.path.join(dest, path))
+    for path in tree_change['copy']:
+        copy_down(os.path.join(src, path), os.path.join(dest, path))

@@ -214,3 +214,39 @@ class TestConfirmTreeChange(unittest.TestCase):
                     return_value=answer):
                 confirmed = files.confirm_tree_change(tree_change, 'a-replica')
             self.assertEqual(confirmed, expected)
+
+
+@unittest.mock.patch('files.copy_down', spec_set=True)
+@unittest.mock.patch('files.delete_up', spec_set=True)
+class TestApplyTreeChange(unittest.TestCase):
+
+    def test_no_changes(self, delete_up_p, copy_down_p):
+        files.apply_tree_change({'delete': set(), 'copy': set()},
+            src='s', dest='d')
+        delete_up_p.assert_not_called()
+        copy_down_p.assert_not_called()
+
+    def test_changes(self, delete_up_p, copy_down_p):
+        files.apply_tree_change({
+            'delete': {'bin/trash', 'rubbish'},
+            'copy': {
+                'news', 'report/month',
+                'bowl/fruit', 'bowl/sugar', 'kitchen/cup/water',
+            },
+        }, src='my/src', dest='some/dest/path')
+        call = unittest.mock.call
+
+        calls = [call(x) for x in
+            ('some/dest/path/bin/trash', 'some/dest/path/rubbish')]
+        delete_up_p.assert_has_calls(calls, any_order=True)
+        self.assertEqual(delete_up_p.call_count, len(calls))
+
+        calls = [call(*pair) for pair in (
+            ('my/src/news', 'some/dest/path/news'),
+            ('my/src/report/month', 'some/dest/path/report/month'),
+            ('my/src/bowl/fruit', 'some/dest/path/bowl/fruit'),
+            ('my/src/bowl/sugar', 'some/dest/path/bowl/sugar'),
+            ('my/src/kitchen/cup/water', 'some/dest/path/kitchen/cup/water'),
+        )]
+        copy_down_p.assert_has_calls(calls, any_order=True)
+        self.assertEqual(copy_down_p.call_count, len(calls))
