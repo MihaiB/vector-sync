@@ -178,7 +178,7 @@ def check_hash_tree(hash_tree):
 
 def check_meta_data(md):
     """
-    Raises ValueError if md is not metadata.
+    Raises ValueError if md is not meta data.
 
     Fails if not dict:
     >>> check_meta_data('')
@@ -221,6 +221,10 @@ def check_meta_data(md):
     >>> check_meta_data({'replicaID': '', 'versionVector': {}, 'hashTree': ''})
     Traceback (most recent call last):
     ValueError: hash tree is not dict
+
+    Accepts valid meta data:
+    >>> check_meta_data({'replicaID': 'MyReplica', 'versionVector': {'A': 4},
+    ...     'hashTree': {'books/book': hash_bytes('content'.encode('utf-8'))}})
     """
     if type(md) is not dict:
         raise ValueError('meta data is not dict')
