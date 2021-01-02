@@ -49,16 +49,18 @@ class TestHashFileTree(unittest.TestCase):
         self.check({})
 
     def test_only_meta_file(self):
-        tree = {}
-        tree[files.META_FILE] = b'hello\n'
+        tree = {
+            files.META_FILE: b'hello\n',
+        }
         self.set_tmp_dir_tree(tree)
         self.check({})
 
     def test_only_meta_dir(self):
-        tree = {}
-        tree[files.META_FILE] = {
-            'hello': {
-                'world': 'test'.encode('utf-8'),
+        tree = {
+            files.META_FILE: {
+                'hello': {
+                    'world': 'test'.encode('utf-8'),
+                },
             },
         }
         self.set_tmp_dir_tree(tree)
