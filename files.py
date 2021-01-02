@@ -2,6 +2,7 @@ import hashlib
 import io
 import json
 import os, os.path
+import shutil
 import tempfile
 import versionvector
 
@@ -389,3 +390,110 @@ def read_meta_data(directory):
         meta_data = json.load(f)
     check_meta_data(meta_data)
     return meta_data
+
+
+def delete_up(path):
+    """
+    os.remove(path) then, if its parent is empty, os.removedirs(parent).
+
+    Deletes the file at path and its empty immediate ancestors,
+    but exactly which ancestors depends on how path is given.
+    See the description above for the precise implementation.
+
+    Throws an error if path does not exist:
+    >>> with tempfile.TemporaryDirectory() as d:
+    ...     delete_up(os.path.join(d, 'child'))
+    ... # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    FileNotFoundError
+
+    Throws an error if called on a directory:
+    >>> with tempfile.TemporaryDirectory() as d:
+    ...     e = os.path.join(d, 'e')
+    ...     os.mkdir(e)
+    ...     delete_up(e)  # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    IsADirectoryError
+
+    Does not remove the parent dir if it contains other files:
+    >>> with tempfile.TemporaryDirectory() as a:
+    ...     parent = os.path.join(a, 'b', 'c')
+    ...     os.makedirs(parent)
+    ...     with open(os.path.join(parent, 'x'), mode='x') as f:
+    ...         pass
+    ...     with open(os.path.join(parent, 'y'), mode='x') as f:
+    ...         pass
+    ...     delete_up(os.path.join(parent, 'x'))
+    ...     os.path.exists(os.path.join(parent, 'x'))
+    ...     os.path.exists(os.path.join(parent, 'y'))
+    False
+    True
+
+    Removes empty immediate ancestors up to a non-empty ancestor:
+    >>> with tempfile.TemporaryDirectory() as a:
+    ...     with open(os.path.join(a, META_FILE), mode='x') as f:
+    ...         pass
+    ...     parent = os.path.join(a, 'c', 'd')
+    ...     os.makedirs(parent)
+    ...     child = os.path.join(parent, 'e')
+    ...     with open(child, mode='x') as f:
+    ...         pass
+    ...     delete_up(child)
+    ...     os.listdir(a)
+    ['.vector-sync']
+    """
+    os.remove(path)
+    parent = os.path.dirname(path)
+    if parent and not os.listdir(parent):
+        os.removedirs(parent)
+
+
+def copy_down(src, dest):
+    """
+    Copy file src to dest, creating dest's parent if it does not exist.
+
+    Copies a file to an existing directory:
+    >>> with tempfile.TemporaryDirectory() as a:
+    ...     with tempfile.TemporaryDirectory() as b:
+    ...         x_path, y_path = os.path.join(a, 'x'), os.path.join(b, 'y')
+    ...         msg = 's3cret'
+    ...         with open(x_path, 'x', encoding='utf-8') as f:
+    ...             f.write(msg) and None
+    ...         copy_down(x_path, y_path)
+    ...         with open(y_path, encoding='utf-8') as f:
+    ...             f.read() == msg
+    True
+
+    Creates the new directory and its parents and copies the file to it:
+    >>> with tempfile.TemporaryDirectory() as a:
+    ...     with tempfile.TemporaryDirectory() as m:
+    ...         x_path = os.path.join(a, 'x')
+    ...         y_path = os.path.join(m, 'n', 'o', 'y')
+    ...         msg = 'nest in nest'
+    ...         with open(x_path, 'x', encoding='utf-8') as f:
+    ...             f.write(msg) and None
+    ...         copy_down(x_path, y_path)
+    ...         with open(y_path, encoding='utf-8') as f:
+    ...             f.read() == msg
+    True
+
+    Overwrites an existing file:
+    >>> with tempfile.TemporaryDirectory() as d:
+    ...     x_path, y_path = os.path.join(d, 'x'), os.path.join(d, 'y')
+    ...     x_msg, y_msg = 'hello', 'goodbye'
+    ...     with open(x_path, 'x', encoding='utf-8') as f:
+    ...         f.write(x_msg) and None
+    ...     with open(y_path, 'x', encoding='utf-8') as f:
+    ...         f.write(y_msg) and None
+    ...     with open(y_path, encoding='utf-8') as f:
+    ...         f.read()
+    ...     copy_down(x_path, y_path)
+    ...     with open(y_path, encoding='utf-8') as f:
+    ...         f.read()
+    'goodbye'
+    'hello'
+    """
+    parent = os.path.dirname(dest)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+    shutil.copyfile(src, dest)

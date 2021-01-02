@@ -1,7 +1,9 @@
 import files
 import os, os.path
+import shutil
 import tempfile
 import unittest
+import unittest.mock
 
 
 class TestMetaFile(unittest.TestCase):
@@ -109,3 +111,60 @@ class TestHashFileTree(unittest.TestCase):
         }
 
         self.check(expected)
+
+
+@unittest.mock.patch('os.removedirs', spec_set=True)
+@unittest.mock.patch('os.listdir', spec_set=True)
+@unittest.mock.patch('os.remove', spec_set=True)
+class TestDeleteUp(unittest.TestCase):
+
+    def test_no_dir(self, remove_p, listdir_p, removedirs_p):
+        path = 'myfile'
+        files.delete_up(path)
+
+        remove_p.assert_called_once_with(path)
+        listdir_p.assert_not_called()
+        removedirs_p.assert_not_called()
+
+    def test_dir_not_empty(self, remove_p, listdir_p, removedirs_p):
+        path = 'path/to/secret.file'
+        listdir_p.return_value = ['dummy.file']
+        files.delete_up(path)
+
+        remove_p.assert_called_once_with(path)
+        listdir_p.assert_called_once_with('path/to')
+        removedirs_p.assert_not_called()
+
+    def test_dir_becomes_empty(self, remove_p, listdir_p, removedirs_p):
+        path = 'my/other/trunk/letters'
+        listdir_p.return_value = []
+        files.delete_up(path)
+
+        remove_p.assert_called_once_with(path)
+        listdir_p.assert_called_once_with('my/other/trunk')
+        removedirs_p.assert_called_once_with('my/other/trunk')
+
+
+class TestCopyDown(unittest.TestCase):
+
+    def setUp(self):
+        makedirs_p = unittest.mock.patch('os.makedirs', spec_set=True)
+        self.makedirs_mock = makedirs_p.start()
+        self.addCleanup(makedirs_p.stop)
+
+        copyfile_p = unittest.mock.patch('shutil.copyfile',
+                spec_set=True)
+        self.copyfile_mock = copyfile_p.start()
+        self.addCleanup(copyfile_p.stop)
+
+    def test_no_dir(self):
+        src, dest = 'the/source', 'the-dest-file'
+        files.copy_down(src, dest)
+        self.makedirs_mock.assert_not_called()
+        self.copyfile_mock.assert_called_once_with(src, dest)
+
+    def test_with_dir(self):
+        src, dest = 'my/source', 'my/dest/file'
+        files.copy_down(src, dest)
+        self.makedirs_mock.assert_called_once_with('my/dest', exist_ok=True)
+        self.copyfile_mock.assert_called_once_with(src, dest)

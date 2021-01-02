@@ -1,65 +1,6 @@
 import contextlib
 import io
 import itertools
-import shutil
-import unittest.mock
-
-
-@unittest.mock.patch('os.removedirs', spec_set=True)
-@unittest.mock.patch('os.listdir', spec_set=True)
-@unittest.mock.patch('os.remove', spec_set=True)
-class TestDeleteUp(unittest.TestCase):
-
-    def testNoDir(self, removeP, listdirP, removedirsP):
-        path = 'myfile'
-        files.deleteUp(path)
-
-        removeP.assert_called_once_with(path)
-        listdirP.assert_not_called()
-        removedirsP.assert_not_called()
-
-    def testDirNotEmpty(self, removeP, listdirP, removedirsP):
-        path = 'path/to/secret.file'
-        listdirP.return_value = ['dummy.file']
-        files.deleteUp(path)
-
-        removeP.assert_called_once_with(path)
-        listdirP.assert_called_once_with('path/to')
-        removedirsP.assert_not_called()
-
-    def testDirBecomesEmpty(self, removeP, listdirP, removedirsP):
-        path = 'my/other/trunk/letters'
-        listdirP.return_value = []
-        files.deleteUp(path)
-
-        removeP.assert_called_once_with(path)
-        listdirP.assert_called_once_with('my/other/trunk')
-        removedirsP.assert_called_once_with('my/other/trunk')
-
-
-class TestCopyDown(unittest.TestCase):
-
-    def setUp(self):
-        makedirsP = unittest.mock.patch('os.makedirs', spec_set=True)
-        self.makedirsMock = makedirsP.start()
-        self.addCleanup(makedirsP.stop)
-
-        copyfileP = unittest.mock.patch('shutil.copyfile',
-                spec_set=True)
-        self.copyfileMock = copyfileP.start()
-        self.addCleanup(copyfileP.stop)
-
-    def testNoDir(self):
-        src, dest = 'the/source', 'the-dest-file'
-        files.copyDown(src, dest)
-        self.makedirsMock.assert_not_called()
-        self.copyfileMock.assert_called_once_with(src, dest)
-
-    def testWithDir(self):
-        src, dest = 'my/source', 'my/dest/file'
-        files.copyDown(src, dest)
-        self.makedirsMock.assert_called_once_with('my/dest', exist_ok=True)
-        self.copyfileMock.assert_called_once_with(src, dest)
 
 
 class TestConfirmTreeChange(unittest.TestCase):
@@ -109,8 +50,8 @@ class TestConfirmTreeChange(unittest.TestCase):
             self.assertEqual(confirmed, expected)
 
 
-@unittest.mock.patch('files.copyDown', spec_set=True)
-@unittest.mock.patch('files.deleteUp', spec_set=True)
+@unittest.mock.patch('files.copy_down', spec_set=True)
+@unittest.mock.patch('files.delete_up', spec_set=True)
 class TestApplyTreeChange(unittest.TestCase):
 
     def testNoChanges(self, deleteUpP, copyDownP):

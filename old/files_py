@@ -1,109 +1,3 @@
-import shutil
-
-
-def deleteUp(path):
-    """
-    os.remove(path) then, if path has a parent which is empty,
-    os.removedirs(parent).
-
-    Deletes the file at path and its empty immediate ancestors,
-    but exactly which ancestors depends on how path is given.
-    See the description above for the precise implementation.
-
-    Throws an error if path does not exist:
-    >>> with tempfile.TemporaryDirectory() as d:
-    ...     deleteUp(os.path.join(d, 'e'))  # doctest: +IGNORE_EXCEPTION_DETAIL
-    Traceback (most recent call last):
-    FileNotFoundError
-
-    Throws an error if called on a directory:
-    >>> with tempfile.TemporaryDirectory() as d:
-    ...     e = os.path.join(d, 'e')
-    ...     os.mkdir(e)
-    ...     deleteUp(e)  # doctest: +IGNORE_EXCEPTION_DETAIL
-    Traceback (most recent call last):
-    IsADirectoryError
-
-    Does not remove parent dir if it contains other files:
-    >>> with tempfile.TemporaryDirectory() as a:
-    ...     parent = os.path.join(a, 'b', 'c')
-    ...     os.makedirs(parent)
-    ...     with open(os.path.join(parent, 'x'), mode='x') as f:
-    ...         pass
-    ...     with open(os.path.join(parent, 'y'), mode='x') as f:
-    ...         pass
-    ...     deleteUp(os.path.join(parent, 'x'))
-    ...     os.path.exists(os.path.join(parent, 'y'))
-    True
-
-    Removes empty immediate ancestors up to a non-empty ancestor:
-    >>> with tempfile.TemporaryDirectory() as a:
-    ...     with open(os.path.join(a, metaFile), mode='x') as f:
-    ...         pass
-    ...     parent = os.path.join(a, 'c', 'd')
-    ...     os.makedirs(parent)
-    ...     child = os.path.join(parent, 'e')
-    ...     with open(child, mode='x') as f:
-    ...         pass
-    ...     deleteUp(child)
-    ...     os.listdir(a)
-    ['.vector-sync']
-    """
-    os.remove(path)
-    parent = os.path.dirname(path)
-    if parent and not os.listdir(parent):
-        os.removedirs(parent)
-
-
-def copyDown(src, dest):
-    """
-    Copies file src to dest, creating dest's parent directory if missing.
-
-    Copies a file to an existing directory:
-    >>> with tempfile.TemporaryDirectory() as a:
-    ...     with tempfile.TemporaryDirectory() as b:
-    ...         xPath, yPath = os.path.join(a, 'x'), os.path.join(b, 'y')
-    ...         msg = 's3cret'
-    ...         with open(xPath, 'x', encoding='utf-8') as f:
-    ...             f.write(msg) and None
-    ...         copyDown(xPath, yPath)
-    ...         with open(yPath, encoding='utf-8') as f:
-    ...             f.read()
-    's3cret'
-
-    Creates the new directory and its parents and copies the file to it:
-    >>> with tempfile.TemporaryDirectory() as a:
-    ...     with tempfile.TemporaryDirectory() as m:
-    ...         xPath = os.path.join(a, 'x')
-    ...         yPath = os.path.join(m, 'n', 'o', 'y')
-    ...         msg = 'nest in nest'
-    ...         with open(xPath, 'x', encoding='utf-8') as f:
-    ...             f.write(msg) and None
-    ...         copyDown(xPath, yPath)
-    ...         with open(yPath, encoding='utf-8') as f:
-    ...             f.read()
-    'nest in nest'
-
-    Overwrites an existing file:
-    >>> with tempfile.TemporaryDirectory() as d:
-    ...     xPath, yPath = os.path.join(d, 'x'), os.path.join(d, 'y')
-    ...     xMsg, yMsg = 'hello', 'goodbye'
-    ...     with open(xPath, 'x', encoding='utf-8') as f:
-    ...         f.write(xMsg) and None
-    ...     with open(yPath, 'x', encoding='utf-8') as f:
-    ...         f.write(yMsg) and None
-    ...     with open(yPath, encoding='utf-8') as f:
-    ...         f.read()
-    ...     copyDown(xPath, yPath)
-    ...     with open(yPath, encoding='utf-8') as f:
-    ...         f.read()
-    'goodbye'
-    'hello'
-    """
-    parent = os.path.dirname(dest)
-    if parent:
-        os.makedirs(parent, exist_ok=True)
-    shutil.copyfile(src, dest)
 
 
 class TreeChange:
@@ -260,7 +154,7 @@ def applyTreeChange(treeChange, *, src, dest):
     TypeError: applyTreeChange() takes 1 positional argument but 2 positional arguments (and 2 keyword-only arguments) were given
     """
     for path in treeChange.delete:
-        deleteUp(os.path.join(dest, path))
+        delete_up(os.path.join(dest, path))
     for items in (treeChange.overwrite, treeChange.add):
         for path in items:
-            copyDown(os.path.join(src, path), os.path.join(dest, path))
+            copy_down(os.path.join(src, path), os.path.join(dest, path))
