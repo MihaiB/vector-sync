@@ -5,7 +5,7 @@ The latest stable version is commit 05e43992d9d118efb77f39f95c7d980f5baaba0b.
 Synchronize directory replicas using version vectors.
 
 
-Version Vectors
+§ Version Vectors
 
 A Version Vector is a map from replica IDs (strings) to counters (integers).
 (In principle: when a replica's data changes, its counter is incremented.)
@@ -32,7 +32,7 @@ if it is present in both, else its counter from X or Y where it is present.
 (In principle: synchronizing X and Y results in X ⊔ Y. X ⊑ Y ⇔ X ⊔ Y = Y.)
 
 
-Replicas
+§ Replicas
 
 A replica is a directory containing the file '.vector-sync'. This file stores:
 - ID: the unique name of the replica.
@@ -45,7 +45,7 @@ Initializing a new replica with ID A creates a '.vector-sync' file containing:
 - files: {}
 
 
-Synchronizing replicas A and B
+§ Synchronizing replicas A and B
 
 For each replica R in {A, B}:
 - Vr ← version vector, Kr ← known '.vector-sync' files, Dr ← directory content.
