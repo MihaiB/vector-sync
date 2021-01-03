@@ -101,13 +101,20 @@ def join(x, y):
     ∀ x: join(x, x) = x
     >>> all(join(x, x) == x for x in [{}, {'A': 1, 'Z': 26}])
     True
+
+    ∀ x: join(x, x) is not the same Python object as x
+    >>> all(join(x, x) is not x for x in [{}, {'a': 27, 'z': 52}])
+    True
     """
     for vv in (x, y):
         check(vv)
     del vv
 
-    return {k: max(x.get(k, y.get(k)), y.get(k, x.get(k)))
-            for k in x.keys() | y.keys()}
+    result = dict(x)
+    for k in y:
+        if k not in result or result[k] < y[k]:
+            result[k] = y[k]
+    return result
 
 
 def advance(key, vv):
