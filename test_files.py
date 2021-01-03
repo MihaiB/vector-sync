@@ -123,21 +123,13 @@ class TestHashFileTree(unittest.TestCase):
 @unittest.mock.patch('os.remove', spec_set=True)
 class TestDeleteUp(unittest.TestCase):
 
-    def test_no_dir(self, remove_p, listdir_p, removedirs_p):
-        path = 'myfile'
-        files.delete_up(path)
-
-        remove_p.assert_called_once_with(path)
-        listdir_p.assert_not_called()
-        removedirs_p.assert_not_called()
-
     def test_dir_not_empty(self, remove_p, listdir_p, removedirs_p):
         path = 'path/to/secret.file'
         listdir_p.return_value = ['dummy.file']
         files.delete_up(path)
 
-        remove_p.assert_called_once_with(path)
-        listdir_p.assert_called_once_with('path/to')
+        remove_p.assert_called_once_with(os.path.realpath(path))
+        listdir_p.assert_called_once_with(os.path.realpath('path/to'))
         removedirs_p.assert_not_called()
 
     def test_dir_becomes_empty(self, remove_p, listdir_p, removedirs_p):
@@ -145,9 +137,9 @@ class TestDeleteUp(unittest.TestCase):
         listdir_p.return_value = []
         files.delete_up(path)
 
-        remove_p.assert_called_once_with(path)
-        listdir_p.assert_called_once_with('my/other/trunk')
-        removedirs_p.assert_called_once_with('my/other/trunk')
+        remove_p.assert_called_once_with(os.path.realpath(path))
+        listdir_p.assert_called_once_with(os.path.realpath('my/other/trunk'))
+        removedirs_p.assert_called_once_with(os.path.realpath('my/other/trunk'))
 
 
 class TestCopyDown(unittest.TestCase):
