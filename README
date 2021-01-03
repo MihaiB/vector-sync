@@ -10,26 +10,24 @@ Synchronize directory replicas using version vectors.
 A Version Vector is a map from replica IDs (strings) to counters (integers).
 (In principle: when a replica's data changes, its counter is incremented.)
 
-X ⊑ Y ⇔ every replica ID in X exists in Y and its X counter ≤ its Y counter.
+X < Y ⇔ X ≠ Y and Y has equal or higher counters for all replica IDs in X.
 
-{}		⊑ {A:1}
-{A:1}		⊑ {A:1}
-{A:1}		⊑ {A:2, B:3}
-{A:1, B:2}	⋢ {B:3}
-{A:1, B:2}	⋢ {A:3, B:1}
-{A:1, B:2}	⊑ {A:1, B:3}
+{}		< {A:1}
+{A:1}		≮ {A:1}
+{A:1}		< {A:2, B:3}
+{A:1, B:2}	≮ {B:3}
+{A:1, B:2}	≮ {A:3, B:1}
+{A:1, B:2}	< {A:1, B:3}
 
-(In principle: X is before Y or X is identical to Y.)
+(In principle: X is before Y.)
 
-X ⊔ Y (join) has the union of X and Y's replica IDs.
-A replica ID's counter is the maximum of its counters in X and Y
-if it is present in both, else its counter from X or Y where it is present.
+X ⊔ Y (join) has all replica IDs in X and Y, each with its maximum counter.
 
 {A:1} ⊔ {A:2}	= {A:2}
 {A:1} ⊔ {B:2}	= {A:1, B:2}
 {A:1, B:4, C:2, D:6} ⊔ {B:3, C:2, D:7, E:9} = {A:1, B:4, C:2, D:7, E:9}
 
-(In principle: synchronizing X and Y results in X ⊔ Y. X ⊑ Y ⇔ X ⊔ Y = Y.)
+(In principle: synchronizing X and Y results in X ⊔ Y.)
 
 
 § Replicas
@@ -53,9 +51,8 @@ For each replica R in {A, B}:
 Nothing has been written to disk, only calculated in memory.
 
 If Da = Db, D ← Da
-else if Va = Vb, stop: the user must reconcile the dirs then run the sync again
-else if Va ⊑ Vb, D ← Db
-else if Vb ⊑ Va, D ← Da
-else stop: diverged, the user must reconcile the dirs then run the sync again
+else if Va < Vb, D ← Db
+else if Vb < Va, D ← Da
+else stop: the user must reconcile the dirs then run the sync again
 
-Replace the directory content and '.vector-sync' in A and B with: Va ⊔ Vb, D.
+Set the directory content and '.vector-sync' in A and B to: Va ⊔ Vb, D.

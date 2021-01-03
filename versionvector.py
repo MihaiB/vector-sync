@@ -52,43 +52,40 @@ def check(vv):
         raise ValueError('version vector value is not int')
 
 
-def leq(x, y):
+def less(x, y):
     """
-    Returns x ⊑ y (True or False).
+    Returns x < y (True or False).
 
-    x ⊑ y ⇔ every x key exists in y and its x counter ≤ its y counter.
+    x < y ⇔ x ≠ y and y has equal or higher counters for all replica IDs in x.
 
-    >>> leq({}, {'A':1})
+    >>> less({}, {'A':1})
     True
-    >>> leq({'A':1} , {'A':1})
-    True
-    >>> leq({'A':1}, {'A':2, 'B':3})
-    True
-    >>> leq({'A':1, 'B':2}, {'B':3})
+    >>> less({'A':1} , {'A':1})
     False
-    >>> leq({'A':1, 'B':2}, {'A':3, 'B':1})
+    >>> less({'A':1}, {'A':2, 'B':3})
+    True
+    >>> less({'A':1, 'B':2}, {'B':3})
     False
-    >>> leq({'A':1, 'B':2}, {'A':1, 'B':3})
+    >>> less({'A':1, 'B':2}, {'A':3, 'B':1})
+    False
+    >>> less({'A':1, 'B':2}, {'A':1, 'B':3})
     True
 
-    ∀ x: leq(x, x)
-    >>> all(leq(x, x) for x in ({}, {'A': 1, 'Z': 26}))
-    True
+    >>> any(less(x, x) for x in ({}, {'A': 1, 'Z': 26}))
+    False
     """
     for vv in (x, y):
         check(vv)
     del vv
 
-    return all(k in y and x[k] <= y[k] for k in x)
+    return x != y and all(k in y and x[k] <= y[k] for k in x)
 
 
 def join(x, y):
     """
     Returns x ⊔ y.
 
-    x ⊔ y has the union of x and y's replica IDs.
-    A replica ID's counter is the maximum of its counters in x and y
-    if it is present in both, else its counter from x or y where it is present.
+    x ⊔ y has all replica IDs in x and y, each with its maximum counter.
 
     >>> join({'A':1}, {'A':2})
     {'A': 2}
