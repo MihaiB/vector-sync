@@ -84,51 +84,6 @@ def hash_file(filename):
     return h.hexdigest()
 
 
-def hash_file_tree(tree_path):
-    """
-    Map all files in the tree to their hash.
-
-    META_FILE descendants are excluded.
-
-    Error for missing tree:
-    >>> with tempfile.TemporaryDirectory() as d:
-    ...     hash_file_tree(os.path.join(d, 'a'))
-    ... # doctest: +IGNORE_EXCEPTION_DETAIL
-    Traceback (most recent call last):
-    FileNotFoundError
-    >>> with tempfile.TemporaryDirectory() as d:
-    ...     hash_file_tree(os.path.join(d, 'a', 'b'))
-    ... # doctest: +IGNORE_EXCEPTION_DETAIL
-    Traceback (most recent call last):
-    FileNotFoundError
-
-    Error for file:
-    >>> with tempfile.NamedTemporaryFile() as f:
-    ...     hash_file_tree(f.name)
-    ... # doctest: +IGNORE_EXCEPTION_DETAIL
-    Traceback (most recent call last):
-    NotADirectoryError
-
-    Error for descendant of a file:
-    >>> with tempfile.NamedTemporaryFile() as f:
-    ...     hash_file_tree(os.path.join(f.name, 'x'))
-    ... # doctest: +IGNORE_EXCEPTION_DETAIL
-    Traceback (most recent call last):
-    NotADirectoryError
-    """
-    hash_tree = {}
-    for item in os.scandir(tree_path):
-        if item.name == META_FILE:
-            continue
-        item_path = os.path.join(tree_path, item.name)
-        if item.is_file():
-            hash_tree[item.name] = hash_file(item_path)
-        if item.is_dir():
-            hash_tree.update({os.path.join(item.name, k): v
-                for k, v in hash_file_tree(item_path).items()})
-    return hash_tree
-
-
 def check_hash_tree(hash_tree):
     """
     Raises ValueError if hash_tree is not a hash tree.
@@ -176,6 +131,54 @@ def check_hash_tree(hash_tree):
         raise ValueError('hash tree key is not str')
     if any(type(v) is not str for v in hash_tree.values()):
         raise ValueError('hash tree value is not str')
+
+
+def hash_file_tree(tree_path):
+    """
+    Map all files in the tree to their hash.
+
+    META_FILE descendants are excluded.
+
+    Error for missing tree:
+    >>> with tempfile.TemporaryDirectory() as d:
+    ...     hash_file_tree(os.path.join(d, 'a'))
+    ... # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    FileNotFoundError
+    >>> with tempfile.TemporaryDirectory() as d:
+    ...     hash_file_tree(os.path.join(d, 'a', 'b'))
+    ... # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    FileNotFoundError
+
+    Error for file:
+    >>> with tempfile.NamedTemporaryFile() as f:
+    ...     hash_file_tree(f.name)
+    ... # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    NotADirectoryError
+
+    Error for descendant of a file:
+    >>> with tempfile.NamedTemporaryFile() as f:
+    ...     hash_file_tree(os.path.join(f.name, 'x'))
+    ... # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    NotADirectoryError
+    """
+    hash_tree = {}
+
+    for item in os.scandir(tree_path):
+        if item.name == META_FILE:
+            continue
+        item_path = os.path.join(tree_path, item.name)
+        if item.is_file():
+            hash_tree[item.name] = hash_file(item_path)
+        if item.is_dir():
+            hash_tree.update({os.path.join(item.name, k): v
+                for k, v in hash_file_tree(item_path).items()})
+
+    check_hash_tree(hash_tree)
+    return hash_tree
 
 
 def check_meta_data(md):
