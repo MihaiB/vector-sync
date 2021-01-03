@@ -395,13 +395,9 @@ def read_meta_data(directory):
     return meta_data
 
 
-def delete_up(path):
+def delete_up(filepath):
     """
-    os.remove(path) then, if its parent is empty, os.removedirs(parent).
-
-    Deletes the file at path and its empty immediate ancestors,
-    but exactly which ancestors depends on how path is given.
-    See the description above for the precise implementation.
+    Delete the file at path then, recursively, empty parent directories.
 
     Throws an error if path does not exist:
     >>> with tempfile.TemporaryDirectory() as d:
@@ -441,10 +437,15 @@ def delete_up(path):
     ...     child = os.path.join(parent, 'e')
     ...     with open(child, mode='x') as f:
     ...         pass
+    ...     sorted(os.listdir(a))
     ...     delete_up(child)
     ...     os.listdir(a)
+    ['.vector-sync', 'c']
     ['.vector-sync']
     """
+    path = os.path.realpath(filepath)
+    del filepath
+
     os.remove(path)
     parent = os.path.dirname(path)
     if parent and not os.listdir(parent):
