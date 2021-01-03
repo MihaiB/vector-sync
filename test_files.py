@@ -18,6 +18,9 @@ class TestMetaFile(unittest.TestCase):
     def test_does_not_contain_path_separator(self):
         self.assertEqual(files.META_FILE.find(os.sep), -1)
 
+    def test_does_not_contain_pardir(self):
+        self.assertEqual(files.META_FILE.find(os.pardir), -1)
+
 
 class TestHashFileTree(unittest.TestCase):
 
