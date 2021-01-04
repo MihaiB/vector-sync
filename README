@@ -11,6 +11,7 @@ A Version Vector is a map from replica IDs (strings) to counters (integers).
 (In principle: when a replica's data changes, its counter is incremented.)
 
 X < Y ⇔ X ≠ Y and Y has equal or higher counters for all replica IDs in X.
+(In principle: X is before Y.)
 
 {}		< {A:1}
 {A:1}		≮ {A:1}
@@ -19,15 +20,12 @@ X < Y ⇔ X ≠ Y and Y has equal or higher counters for all replica IDs in X.
 {A:1, B:2}	≮ {A:3, B:1}
 {A:1, B:2}	< {A:1, B:3}
 
-(In principle: X is before Y.)
-
-X ⊔ Y (join) has all replica IDs in X and Y, each with its maximum counter.
+X ⊔ Y (join) has all replica IDs, each with its maximum counter.
+(In principle: synchronizing X and Y results in X ⊔ Y.)
 
 {A:1} ⊔ {A:2}	= {A:2}
 {A:1} ⊔ {B:2}	= {A:1, B:2}
 {A:1, B:4, C:2, D:6} ⊔ {B:3, C:2, D:7, E:9} = {A:1, B:4, C:2, D:7, E:9}
-
-(In principle: synchronizing X and Y results in X ⊔ Y.)
 
 
 § Replicas
@@ -55,4 +53,4 @@ else if Va < Vb, D ← Db
 else if Vb < Va, D ← Da
 else stop: the user must reconcile the dirs then run the sync again
 
-Set the directory content and '.vector-sync' in A and B to: Va ⊔ Vb, D.
+Set both replicas to D and Va ⊔ Vb.
