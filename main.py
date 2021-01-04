@@ -26,14 +26,7 @@ def parse_args(args=None):
 
 
 def main():
-    try:
-        parse_args()
-    except SystemExit:
-        # Caused by ‘--help’, don't handle it.
-        raise
-    except:
-        traceback.print_exception(*sys.exc_info()[:2], None)
-        sys.exit(1)
+    parse_args()
 
 
 if __name__ == '__main__':
