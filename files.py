@@ -1,6 +1,8 @@
 import hashlib
 import io
+import json
 import os, os.path
+import shutil
 import tempfile
 import versionvector
 
@@ -192,3 +194,266 @@ def check_meta_data(md):
         raise ValueError('replicaID is not str')
     versionvector.check(md['versionVector'])
     check_hash_tree(md['hashTree'])
+
+
+def write_meta_data(meta_data, directory, *, overwrite):
+    """
+    Write meta_data to META_FILE in directory.
+
+    Fails for invalid meta data:
+    >>> with tempfile.TemporaryDirectory() as d:
+    ...     write_meta_data({'replicaID': '', 'treeHash': {}}, d,
+    ...         overwrite=True)
+    Traceback (most recent call last):
+    ValueError: invalid meta data keys
+
+    >>> def make_md():
+    ...     return {
+    ...         'replicaID': 'Backup',
+    ...         'versionVector': {'Laptop': 3, 'Backup': 2},
+    ...         'hashTree': {
+    ...             'school/homework': hash_bytes('essay'.encode('utf-8')),
+    ...             'diary/January': hash_bytes('Vector-Sync'.encode('utf-8')),
+    ...         },
+    ...     }
+
+    >>> def make_md_2():
+    ...     return {
+    ...         'replicaID': 'Alternative',
+    ...         'versionVector': {'Desktop': 5},
+    ...         'hashTree': {
+    ...             'book': hash_bytes('text'.encode('utf-8')),
+    ...         },
+    ...     }
+
+    >>> make_md() == make_md()
+    True
+    >>> make_md() is make_md()
+    False
+
+    >>> make_md_2() == make_md_2()
+    True
+    >>> make_md_2() is make_md_2()
+    False
+
+    >>> make_md() == make_md_2()
+    False
+
+    Throws an exception if the directory does not exist:
+    >>> with tempfile.TemporaryDirectory() as d:
+    ...     write_meta_data(make_md(), os.path.join(d, 'child'),
+    ...         overwrite=True)
+    ... # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    FileNotFoundError
+
+    Throws an exception if called for a file:
+    >>> with tempfile.NamedTemporaryFile() as f:
+    ...     write_meta_data(make_md(), f.name, overwrite=True)
+    ... # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    NotADirectoryError
+
+    Creates a new META_FILE in directory:
+    >>> with tempfile.TemporaryDirectory() as d:
+    ...     write_meta_data(make_md(), d, overwrite=False)
+    ...     with open(os.path.join(d, META_FILE), 'r', encoding='utf-8') as f:
+    ...         json.load(f) == make_md()
+    True
+
+    Does not overwrite META_FILE with overwrite=False:
+    >>> with tempfile.TemporaryDirectory() as d:
+    ...     write_meta_data(make_md(), d, overwrite=False)
+    ...     try:
+    ...         write_meta_data(make_md_2(), d, overwrite=False)
+    ...     except FileExistsError:
+    ...         print('caught FileExistsError')
+    ...     with open(os.path.join(d, META_FILE), 'r', encoding='utf-8') as f:
+    ...         json.load(f) == make_md()
+    caught FileExistsError
+    True
+
+    Overwrites META_FILE with overwrite=True:
+    >>> with tempfile.TemporaryDirectory() as d:
+    ...     write_meta_data(make_md(), d, overwrite=False)
+    ...     with open(os.path.join(d, META_FILE), 'r', encoding='utf-8') as f:
+    ...         json.load(f) == make_md()
+    ...     write_meta_data(make_md_2(), d, overwrite=True)
+    ...     with open(os.path.join(d, META_FILE), 'r', encoding='utf-8') as f:
+    ...         json.load(f) == make_md_2()
+    True
+    True
+    """
+    check_meta_data(meta_data)
+    meta_file_path = os.path.join(directory, META_FILE)
+    mode = 'w' if overwrite else 'x'
+    with open(meta_file_path, mode, encoding='utf-8') as f:
+        json.dump(meta_data, f, indent=2, sort_keys=True)
+
+
+def read_meta_data(directory):
+    """
+    Read meta data from META_FILE in directory.
+
+    Throws an exception if the directory does not exist:
+    >>> with tempfile.TemporaryDirectory() as d:
+    ...     read_meta_data(os.path.join(d, 'child'))
+    ... # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    FileNotFoundError
+
+    Throws an exception if called for a file:
+    >>> with tempfile.NamedTemporaryFile() as f:
+    ...     read_meta_data(f.name) # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    NotADirectoryError
+
+    Throws an exception if META_FILE is missing:
+    >>> with tempfile.TemporaryDirectory() as d:
+    ...     read_meta_data(d)  # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    FileNotFoundError
+
+    Throws an exception if the meta data is not valid:
+    >>> partial_data = {'replicaID': 'R', 'versionVector': {'R': 1}}
+    >>> with tempfile.TemporaryDirectory() as d:
+    ...     with open(os.path.join(d, META_FILE), 'w', encoding='utf-8') as f:
+    ...         json.dump(partial_data, f)
+    ...     read_meta_data(d)
+    Traceback (most recent call last):
+    ValueError: invalid meta data keys
+
+    >>> def make_md():
+    ...     return {
+    ...         'replicaID': 'Backup',
+    ...         'versionVector': {'Laptop': 3, 'Backup': 2},
+    ...         'hashTree': {
+    ...             'school/project': hash_bytes('essay'.encode('utf-8')),
+    ...             'diary/March': hash_bytes('Vector-Sync!'.encode('utf-8')),
+    ...         },
+    ...     }
+
+    >>> make_md() == make_md()
+    True
+    >>> make_md() is make_md()
+    False
+
+    Loads an existing META_FILE:
+    >>> with tempfile.TemporaryDirectory() as d:
+    ...     write_meta_data(make_md(), d, overwrite=False)
+    ...     read_meta_data(d) == make_md()
+    True
+    """
+    with open(os.path.join(directory, META_FILE), 'r', encoding='utf-8') as f:
+        meta_data = json.load(f)
+    check_meta_data(meta_data)
+    return meta_data
+
+
+def delete_up(filepath):
+    """
+    Delete the file at path then, recursively, empty parent directories.
+
+    Throws an error if path does not exist:
+    >>> with tempfile.TemporaryDirectory() as d:
+    ...     delete_up(os.path.join(d, 'child'))
+    ... # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    FileNotFoundError
+
+    Throws an error if called on a directory:
+    >>> with tempfile.TemporaryDirectory() as d:
+    ...     e = os.path.join(d, 'e')
+    ...     os.mkdir(e)
+    ...     delete_up(e)  # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    IsADirectoryError
+
+    Does not remove the parent dir if it contains other files:
+    >>> with tempfile.TemporaryDirectory() as a:
+    ...     parent = os.path.join(a, 'b', 'c')
+    ...     os.makedirs(parent)
+    ...     with open(os.path.join(parent, 'x'), mode='x') as f:
+    ...         pass
+    ...     with open(os.path.join(parent, 'y'), mode='x') as f:
+    ...         pass
+    ...     delete_up(os.path.join(parent, 'x'))
+    ...     os.path.exists(os.path.join(parent, 'x'))
+    ...     os.path.exists(os.path.join(parent, 'y'))
+    False
+    True
+
+    Removes empty immediate ancestors up to a non-empty ancestor:
+    >>> with tempfile.TemporaryDirectory() as a:
+    ...     with open(os.path.join(a, META_FILE), mode='x') as f:
+    ...         pass
+    ...     parent = os.path.join(a, 'c', 'd')
+    ...     os.makedirs(parent)
+    ...     child = os.path.join(parent, 'e')
+    ...     with open(child, mode='x') as f:
+    ...         pass
+    ...     sorted(os.listdir(a))
+    ...     delete_up(child)
+    ...     os.listdir(a)
+    ['.vector-sync', 'c']
+    ['.vector-sync']
+    """
+    path = os.path.realpath(filepath)
+    del filepath
+
+    os.remove(path)
+    parent = os.path.dirname(path)
+    # parent is truthy when using absolute paths; but still, defensive check:
+    if parent and not os.listdir(parent):
+        os.removedirs(parent)
+
+
+def copy_down(src, dest):
+    """
+    Copy file src to dest, creating dest's parent if it does not exist.
+
+    Copies a file to an existing directory:
+    >>> with tempfile.TemporaryDirectory() as a:
+    ...     with tempfile.TemporaryDirectory() as b:
+    ...         x_path, y_path = os.path.join(a, 'x'), os.path.join(b, 'y')
+    ...         msg = 's3cret'
+    ...         with open(x_path, 'x', encoding='utf-8') as f:
+    ...             f.write(msg) and None
+    ...         copy_down(x_path, y_path)
+    ...         with open(y_path, encoding='utf-8') as f:
+    ...             f.read() == msg
+    True
+
+    Creates the new directory and its parents and copies the file to it:
+    >>> with tempfile.TemporaryDirectory() as a:
+    ...     with tempfile.TemporaryDirectory() as m:
+    ...         x_path = os.path.join(a, 'x')
+    ...         y_path = os.path.join(m, 'n', 'o', 'y')
+    ...         msg = 'nest in nest'
+    ...         with open(x_path, 'x', encoding='utf-8') as f:
+    ...             f.write(msg) and None
+    ...         copy_down(x_path, y_path)
+    ...         with open(y_path, encoding='utf-8') as f:
+    ...             f.read() == msg
+    True
+
+    Overwrites an existing file:
+    >>> with tempfile.TemporaryDirectory() as d:
+    ...     x_path, y_path = os.path.join(d, 'x'), os.path.join(d, 'y')
+    ...     x_msg, y_msg = 'hello', 'goodbye'
+    ...     with open(x_path, 'x', encoding='utf-8') as f:
+    ...         f.write(x_msg) and None
+    ...     with open(y_path, 'x', encoding='utf-8') as f:
+    ...         f.write(y_msg) and None
+    ...     with open(y_path, encoding='utf-8') as f:
+    ...         f.read()
+    ...     copy_down(x_path, y_path)
+    ...     with open(y_path, encoding='utf-8') as f:
+    ...         f.read()
+    'goodbye'
+    'hello'
+    """
+    parent = os.path.dirname(dest)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+    shutil.copyfile(src, dest)
