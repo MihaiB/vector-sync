@@ -8,12 +8,6 @@ def check(vv):
     Raises ValueError if vv is not a version vector.
 
     Fails if not dict:
-    >>> check('hi')
-    Traceback (most recent call last):
-    ValueError: version vector is not dict
-    >>> check(None)
-    Traceback (most recent call last):
-    ValueError: version vector is not dict
     >>> check({'a', 'b'})
     Traceback (most recent call last):
     ValueError: version vector is not dict
@@ -25,15 +19,9 @@ def check(vv):
     >>> check({'a': 1, 2: 2})
     Traceback (most recent call last):
     ValueError: version vector key is not str
-    >>> check({'a': 1, None: 1})
-    Traceback (most recent call last):
-    ValueError: version vector key is not str
 
     Fails if a value is not int:
     >>> check({'a': 3, 'b': '4'})
-    Traceback (most recent call last):
-    ValueError: version vector value is not int
-    >>> check({'R': 0, 'S': None})
     Traceback (most recent call last):
     ValueError: version vector value is not int
     >>> check({'i': 0, 'f': 2.0})
@@ -41,7 +29,6 @@ def check(vv):
     ValueError: version vector value is not int
 
     Accepts a dict from str to int:
-    >>> check({'X': 1})
     >>> check({'A': 0, 'B': 5})
     """
     if type(vv) is not dict:
@@ -70,9 +57,6 @@ def less(x, y):
     False
     >>> less({'A':1, 'B':2}, {'A':1, 'B':3})
     True
-
-    >>> any(less(x, x) for x in ({}, {'A': 1, 'Z': 26}))
-    False
     """
     for vv in (x, y):
         check(vv)
@@ -85,7 +69,7 @@ def join(x, y):
     """
     Returns x ⊔ y.
 
-    x ⊔ y has all replica IDs in x and y, each with its maximum counter.
+    x ⊔ y has all replica IDs, each with its maximum counter.
 
     >>> join({'A':1}, {'A':2})
     {'A': 2}
@@ -111,17 +95,13 @@ def join(x, y):
     for k in y:
         if k not in result or result[k] < y[k]:
             result[k] = y[k]
+    check(result)
     return result
 
 
 def advance(key, vv):
     """
     Return a new dict with key's value incremented if present else set to 1.
-
-    Fails if key is not str:
-    >>> advance(3, {})
-    Traceback (most recent call last):
-    ValueError: key to advance is not str
 
     >>> advance('A', {})
     {'A': 1}
@@ -135,17 +115,15 @@ def advance(key, vv):
     True
 
     The argument is not modified:
-    >>> original = {'A': 2, 'Z': 1}
-    >>> copy = dict(original)
-    >>> sorted(advance('Z', original).items())
-    [('A', 2), ('Z', 2)]
-    >>> copy == original
+    >>> original = {'A': 2, 'Z': 7}
+    >>> advance('Z', original) == {'A': 2, 'Z': 8}
+    True
+    >>> original == {'A': 2, 'Z': 7}
     True
     """
-    if type(key) is not str:
-        raise ValueError('key to advance is not str')
     check(vv)
 
-    copy = dict(vv)
-    copy[key] = copy.get(key, 0) + 1
-    return copy
+    result = dict(vv)
+    result[key] = result.get(key, 0) + 1
+    check(result)
+    return result
