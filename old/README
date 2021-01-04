@@ -1,7 +1,0 @@
-
-
-Run
-
-./main.py --help
-
-TODO: run --help for subcommands too, both in the README and in GitHub Actions.
