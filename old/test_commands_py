@@ -1,21 +1,6 @@
-import commands
 import contextlib
-import files
 import io
 import unittest, unittest.mock
-
-
-class TestInit(unittest.TestCase):
-
-    @unittest.mock.patch('files.setMetaData', spec_set=True)
-    def testInit(self, setMetaData):
-        stdout = io.StringIO()
-        with contextlib.redirect_stdout(stdout):
-            commands.init('NewDump')
-        setMetaData.assert_called_once_with(files.MetaData('NewDump', {}, {}),
-                '.')
-        self.assertEqual(stdout.getvalue(),
-                'Initialized new empty replica NewDump.\n')
 
 
 class TestSyncTree(unittest.TestCase):
