@@ -4,7 +4,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: step
-        run: .github/workflows/workflow.sh
+        run: docker build --pull --force-rm .
 
 name: workflow
 
