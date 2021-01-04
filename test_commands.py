@@ -1,12 +1,13 @@
 import commands
 import files
 import tempfile
-import unittest
+import unittest, unittest.mock
 
 
 class TestInitReplica(unittest.TestCase):
 
-    def test_init_replica(self):
+    @unittest.mock.patch('sys.stdout', spec_set=True)   # silence test output
+    def test_init_replica(self, stdout):
         def check(path):
             self.assertEqual(files.read_meta_data(path), {
                 'replicaID': 'FirstReplica',
