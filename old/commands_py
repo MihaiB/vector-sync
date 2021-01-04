@@ -1,12 +1,6 @@
-import files
 import os, os.path
 import tempfile
 import versionvector
-
-
-def init(ID):
-    files.setMetaData(files.MetaData(ID, {}, {}), '.')
-    print('Initialized new empty replica', ID + '.')
 
 
 class SyncInput:

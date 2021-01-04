@@ -5,6 +5,13 @@ The latest stable version is commit 05e43992d9d118efb77f39f95c7d980f5baaba0b.
 Synchronize directory replicas using version vectors.
 
 
+§ Run
+
+./main.py --help
+./main.py init --help
+./main.py sync --help
+
+
 § Version Vectors
 
 A Version Vector is a map from replica IDs (strings) to counters (integers).
