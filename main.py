@@ -17,7 +17,7 @@ def parse_args(args=None):
     init_p.set_defaults(func=lambda args: commands.init_replica(args.ID, '.'))
 
     sync_p = subparsers.add_parser('sync', help='''Synchronize the replica
-        in the current directory with another replica''')
+            in the current directory with another replica''')
     sync_p.add_argument('path', help='path/to/another/replica')
     sync_p.set_defaults(func=lambda args: commands.sync('.', args.path))
 
