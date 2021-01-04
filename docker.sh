@@ -8,6 +8,5 @@ SCRIPT_DIR=`dirname "$SCRIPT"`
 cd "$SCRIPT_DIR"
 unset SCRIPT SCRIPT_DIR
 
-python3 --version
 find -name '*.py' -exec python3 -m doctest '{}' +
 python3 -m unittest
