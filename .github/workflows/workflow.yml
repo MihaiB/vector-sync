@@ -4,7 +4,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: step
-        run: docker build --pull --force-rm .
+        run: true
 
 name: workflow
 
