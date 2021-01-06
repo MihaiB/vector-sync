@@ -2,6 +2,7 @@ import hashlib
 import io
 import json
 import os
+import shutil
 import versionvectors
 
 
@@ -120,3 +121,24 @@ def _hash_file_tree(tree_path, *, is_root):
 
     check_file_hashes(file_hashes)
     return file_hashes
+
+
+def delete_up(filepath):
+    """Delete the file and all empty parent directories."""
+    path = os.path.realpath(filepath)
+    del filepath
+
+    os.remove(path)
+    # ‘path’ is an absolute not a relative path
+    # so ‘parent’ won't be the empty string.
+    parent = os.path.dirname(path)
+    if not os.listdir(parent):
+        os.removedirs(parent)
+
+
+def copy_down(src_file, dest_file):
+    """Copy src_file to dest_file creating dest_file's parent if absent."""
+    parent = os.path.dirname(dest_file)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+        shutil.copyfile(src_file, dest_file)
