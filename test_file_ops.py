@@ -283,8 +283,8 @@ class TestInitFileTree(unittest.TestCase):
 
     def test_dir_does_not_exist(self):
         with tempfile.TemporaryDirectory() as d:
+            bad_dirpath = os.path.join(d, 'a')
             with self.assertRaises(FileNotFoundError):
-                bad_dirpath = os.path.join(d, 'a')
                 file_ops.init_file_tree(dirpath=bad_dirpath, tree_id='A')
 
     def test_meta_file_exists(self):
