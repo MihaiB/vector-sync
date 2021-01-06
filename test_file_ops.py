@@ -271,7 +271,7 @@ class TestCopyDown(unittest.TestCase):
             with open(src_path, 'x', encoding='utf-8') as f:
                 pass
 
-            dest_path = os.path.join(d, 'm', '..', 'n', 'f')
+            dest_path = os.path.join(d, 'm', '..', 'n', 'g')
             self.assertTrue(dest_path.index('/m/../n/') > 0)
             file_ops.copy_down(src_path, dest_path)
             # ‘os.makedirs('m/../n', exist_ok=True)’ creates dirs 'm' and 'n'.
