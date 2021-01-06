@@ -272,7 +272,7 @@ class TestCopyDown(unittest.TestCase):
                 pass
 
             dest_path = os.path.join(d, 'm', '..', 'n', 'f')
-            self.assertTrue(dest_path.index('/../') > 0)
+            self.assertTrue(dest_path.index('/m/../n/') > 0)
             file_ops.copy_down(src_path, dest_path)
             # ‘os.makedirs('m/../n', exist_ok=True)’ creates dirs 'm' and 'n'.
             # Ensure the code under test only creates 'n'.
