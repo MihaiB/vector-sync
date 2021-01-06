@@ -277,3 +277,34 @@ class TestCopyDown(unittest.TestCase):
             # ‘os.makedirs('m/../n', exist_ok=True)’ creates dirs 'm' and 'n'.
             # Ensure the code under test only creates 'n'.
             self.assertEqual(set(os.listdir(d)), {'f', 'n'})
+
+
+class TestInitFileTree(unittest.TestCase):
+
+    def test_dir_does_not_exist(self):
+        with tempfile.TemporaryDirectory() as d:
+            with self.assertRaises(FileNotFoundError):
+                bad_dirpath = os.path.join(d, 'a')
+                file_ops.init_file_tree(dirpath=bad_dirpath, tree_id='A')
+
+    def test_meta_file_exists(self):
+        with tempfile.TemporaryDirectory() as d:
+            meta_file_path = os.path.join(d, file_ops.META_FILE)
+            with open(meta_file_path, 'x', encoding='utf-8') as f:
+                pass
+            with self.assertRaises(FileExistsError):
+                file_ops.init_file_tree(dirpath=d, tree_id='My Tree')
+
+    def test_init_file_tree(self):
+        with tempfile.TemporaryDirectory() as d:
+            with open(os.path.join(d, 'book'), 'x', encoding='utf-8') as f:
+                f.write('chapter')
+            file_ops.init_file_tree(dirpath=d, tree_id='Main Library')
+
+            got = file_ops.read_meta_data(os.path.join(d, file_ops.META_FILE))
+            want = {
+                'id': 'Main Library',
+                'version_vector': {},
+                'file_hashes': {},
+            }
+            self.assertEqual(got, want)
