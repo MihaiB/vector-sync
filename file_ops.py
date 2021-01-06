@@ -129,8 +129,8 @@ def delete_up(filepath):
     del filepath
 
     os.remove(path)
-    # ‘path’ is an absolute not a relative path
-    # so ‘parent’ won't be the empty string.
+    # Because ‘path’ is an absolute not a relative path
+    # ‘parent’ won't be the empty string.
     parent = os.path.dirname(path)
     if not os.listdir(parent):
         os.removedirs(parent)
