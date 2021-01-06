@@ -81,9 +81,7 @@ def new_hash_obj():
 
 
 def hash_file(filename):
-    """
-    Computes the hexdigest of the file content.
-    """
+    """Computes the hexdigest of the file content."""
     with open(filename, 'rb') as f:
         h = new_hash_obj()
         while True:
