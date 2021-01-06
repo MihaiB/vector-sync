@@ -98,7 +98,6 @@ def hash_file_tree(path):
 def _hash_file_tree(tree_path, *, is_root):
     file_hashes = {}
 
-    meta_file_present = False
     children = list(os.scandir(tree_path))
 
     for child in children:
@@ -106,7 +105,6 @@ def _hash_file_tree(tree_path, *, is_root):
 
         if child.name == META_FILE:
             if is_root and child.is_file():
-                meta_file_present = True
                 continue
             raise Exception(f'forbidden tree item: {child_path}')
 
@@ -117,7 +115,7 @@ def _hash_file_tree(tree_path, *, is_root):
                     is_root=False).items():
                 file_hashes[os.path.join(child.name, subpath)] = hash_val
 
-    if not file_hashes and not meta_file_present:
+    if not file_hashes and not is_root:
         raise Exception(f'forbidden empty directory: {tree_path}')
 
     check_file_hashes(file_hashes)

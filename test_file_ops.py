@@ -124,16 +124,16 @@ class TestHashFileTree(unittest.TestCase):
                     file_ops.hash_file_tree(d)
 
     def test_error_for_empty_dirs(self):
-        for bad_tree, bad_relpath in (
-                ({}, ''),
-                ({'f': b'', 'd': {}}, 'd'),
-                ):
-            with tempfile.TemporaryDirectory() as d:
-                create_files(bad_tree, d)
-                bad_path = os.path.normpath(os.path.join(d, bad_relpath))
-                with self.assertRaisesRegex(Exception,
-                        f'^forbidden empty directory: {bad_path}$'):
-                    file_ops.hash_file_tree(d)
+        with tempfile.TemporaryDirectory() as d:
+            create_files({'f': b'', 'nes': {'ted': {}}}, d)
+            bad_path = os.path.join(d, 'nes', 'ted')
+            with self.assertRaisesRegex(Exception,
+                    f'^forbidden empty directory: {bad_path}$'):
+                file_ops.hash_file_tree(d)
+
+    def test_accepts_empty_dir(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.assertEqual(file_ops.hash_file_tree(d), {})
 
     def test_accepts_dir_with_only_metafile(self):
         with tempfile.TemporaryDirectory() as d:
