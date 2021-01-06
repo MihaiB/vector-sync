@@ -141,3 +141,16 @@ def copy_down(src_file, dest_file):
     dest_file = os.path.realpath(dest_file)
     os.makedirs(os.path.dirname(dest_file), exist_ok=True)
     shutil.copyfile(src_file, dest_file)
+
+
+def init_file_tree(*, dirpath, tree_id):
+    filepath = os.path.join(dirpath, META_FILE)
+    # error out if the file already exists
+    with open(filepath, 'x', encoding='utf-8') as f:
+        pass
+    md = {
+        'id': tree_id,
+        'version_vector': {},
+        'file_hashes': {},
+    }
+    write_meta_data(md, filepath)
