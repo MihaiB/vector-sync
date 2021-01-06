@@ -27,11 +27,11 @@ Any empty directory is an error.
   "file_hashes": {}
 }
 
-"version_vector" is {"tree_id": 5, "another_id": 7}
+"version_vector" is {"tree_id": 5, "another_id": 7, …}
 Intuitively, when a tree changes the counter for its "id" is incremented
 (or set to 1 if it is absent).
 
-"file_hashes" is {"path/to/file": "hash of content"}
+"file_hashes" is {"path/to/file": "hash of content", "other/file": "hash", …}
 
 
 § Version Vector Operations
