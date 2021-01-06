@@ -100,6 +100,7 @@ def _hash_file_tree(tree_path, *, is_root):
 
     meta_file_present = False
     children = list(os.scandir(tree_path))
+
     for child in children:
         child_path = os.path.join(tree_path, child.name)
 
