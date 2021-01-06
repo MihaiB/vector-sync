@@ -19,6 +19,13 @@ Any other .vector-sync file or directory is an error.
 Any empty directory is an error.
 
 
+§ Run
+
+./main.py --help
+./main.py init --help
+./main.py sync --help
+
+
 § New tree metadata
 
 {
