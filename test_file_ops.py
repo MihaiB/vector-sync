@@ -264,3 +264,16 @@ class TestCopyDown(unittest.TestCase):
                 file_ops.copy_down(x_path, y_path)
                 with open(y_path, encoding='utf-8') as f:
                     self.assertEqual(f.read(), msg)
+
+    def test_winding_path(self):
+        with tempfile.TemporaryDirectory() as d:
+            src_path = os.path.join(d, 'f')
+            with open(src_path, 'x', encoding='utf-8') as f:
+                pass
+
+            dest_path = os.path.join(d, 'm', '..', 'n', 'f')
+            self.assertTrue(dest_path.index('/../') > 0)
+            file_ops.copy_down(src_path, dest_path)
+            # ‘os.makedirs('m/../n', exist_ok=True)’ creates dirs 'm' and 'n'.
+            # Ensure the code under test only creates 'n'.
+            self.assertEqual(set(os.listdir(d)), {'f', 'n'})

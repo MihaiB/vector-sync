@@ -138,6 +138,7 @@ def delete_up(filepath):
 
 def copy_down(src_file, dest_file):
     """Copy src_file to dest_file creating dest_file's parent if absent."""
+    dest_file = os.path.realpath(dest_file)
     parent = os.path.dirname(dest_file)
     if parent:
         os.makedirs(parent, exist_ok=True)
