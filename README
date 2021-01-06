@@ -36,8 +36,8 @@ Intuitively, when a tree changes the counter for its "id" is incremented
 
 § Version Vector Operations
 
-A < B ⇔ A ≠ B and each ID in A is present in B with an equal or higher counter.
-Intuitively, A is before B.
+X < Y ⇔ X ≠ Y and each ID in X is present in Y with an equal or higher counter.
+Intuitively, X is before Y.
 
 {}		< {A:1}
 {A:1}		≮ {A:1}
@@ -46,11 +46,11 @@ Intuitively, A is before B.
 {A:1, B:2}	≮ {A:3, B:1}
 {A:1, B:2}	< {A:1, B:3}
 
-A ⊔ B (join) has all IDs in A and B.
-An ID's counter is the maximum of its counters in A and B
+X ⊔ Y (join) has all IDs in X and Y.
+An ID's counter is the maximum of its counters in X and Y
 if it is present in both,
-else its counter from A or B where it is present.
-Intuitively, synchronizing version vectors A and B results in A ⊔ B.
+else its counter from X or Y where it is present.
+Intuitively, synchronizing version vectors X and Y results in X ⊔ Y.
 
 {A:1} ⊔ {A:2}	= {A:2}
 {A:1} ⊔ {B:2}	= {A:1, B:2}
