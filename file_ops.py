@@ -256,11 +256,11 @@ def sync_file_trees(path_a, path_b):
         return
 
     if a['disk_hashes'] == b['disk_hashes']:
-        vv_join = versionvectors.join(a['post_vv'], b['post_vv'])
+        vv = versionvectors.join(a['post_vv'], b['post_vv'])
         hashes = a['disk_hashes']
         for tree_status in a, b:
-            write_meta_data_if_different(vv_join, hashes, tree_status)
-        del vv_join, hashes, tree_status
+            write_meta_data_if_different(vv, hashes, tree_status)
+        del vv, hashes, tree_status
         print(f'Synchronized {a["id"]} and {b["id"]}.')
         return
 
