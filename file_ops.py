@@ -224,26 +224,23 @@ def read_tree_status(path):
     return ts
 
 
-def ensure_meta_data(md, ts):
-    """
-    Write the meta data only if it differs from the file tree's meta data.
+def write_meta_data_if_different(version_vector, file_hashes, tree_status):
+    """Write the meta data if it differs from the one in tree_status."""
+    versionvectors.check(version_vector)
+    check_file_hashes(file_hashes)
+    check_tree_status(tree_status)
 
-    Returns True if the meta data was written, else False.
-    """
-    check_meta_data(md)
-    check_tree_status(ts)
+    if (version_vector == tree_status['pre_vv']
+            and file_hashes == tree_status['known_hashes']):
+        return
 
-    old_md = {
-        'id': ts['id'],
-        'version_vector': ts['pre_vv'],
-        'file_hashes': ts['known_hashes'],
+    meta_data = {
+        'id': tree_status['id'],
+        'version_vector': version_vector,
+        'file_hashes': file_hashes,
     }
-    check_meta_data(old_md)
-    if md == old_md:
-        return False
-
-    write_meta_data(md, os.path.join(ts['path'], META_FILE))
-    return True
+    check_meta_data(meta_data)
+    write_meta_data(meta_data, os.path.join(tree_status['path'], META_FILE))
 
 
 def sync_file_trees(path_a, path_b):
@@ -252,17 +249,19 @@ def sync_file_trees(path_a, path_b):
 
     if a['id'] == b['id']:
         raise Exception('Refusing to sync file trees with identical IDs.')
-    elif a['disk_hashes'] == b['disk_hashes']:
-        vv_join = versionvectors.join(a['post_vv'], b['post_vv'])
-        # Execute all function calls. ‘any(…)’ can short-circuit.
-        writes = [ensure_meta_data({
-            'id': x['id'],
-            'file_hashes': a['disk_hashes'],
-            'version_vector': vv_join,
-        }, x) for x in (a, b)]
-        if any(writes):
-            print(f'Synchronized {a["id"]} and {b["id"]}.')
-        else:
-            print(f'{a["id"]} and {b["id"]} are already synchronized.')
-    else:
-        raise NotImplementedError()
+
+    if (a['pre_vv'] == a['post_vv'] == b['pre_vv'] == b['post_vv']
+            and a['known_hashes'] == b['known_hashes']):
+        print(f'{a["id"]} and {b["id"]} are already synchronized.')
+        return
+
+    if a['disk_hashes'] == b['disk_hashes']:
+        vv = versionvectors.join(a['post_vv'], b['post_vv'])
+        hashes = a['disk_hashes']
+        for tree_status in a, b:
+            write_meta_data_if_different(vv, hashes, tree_status)
+        del vv, hashes, tree_status
+        print(f'Synchronized {a["id"]} and {b["id"]}.')
+        return
+
+    raise NotImplementedError()

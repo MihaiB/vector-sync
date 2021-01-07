@@ -363,24 +363,22 @@ class TestReadTreeStatus(unittest.TestCase):
             })
 
 
-class TestEnsureMetaData(unittest.TestCase):
+class TestWriteMetaDataIfDifferent(unittest.TestCase):
 
     def test_no_change(self):
         with tempfile.TemporaryDirectory() as d:
-            md = {
-                'id': 'MyTree',
-                'file_hashes': {'diary': 'hash of entries'},
-                'version_vector': {'A': 17},
-            }
+            version_vector = {'A': 17}
+            file_hashes = {'diary': 'hash of entries'}
             ts = {
                 'path': os.path.join(d, 'non', 'existent'),
-                'id': md['id'],
-                'pre_vv': md['version_vector'],
-                'known_hashes': md['file_hashes'],
+                'id': 'MyTree',
+                'pre_vv': version_vector,
+                'known_hashes': file_hashes,
                 'disk_hashes': {'shopping list': 'hash of food names'},
                 'post_vv': {'B': 3},
             }
-            self.assertFalse(file_ops.ensure_meta_data(md, ts))
+            file_ops.write_meta_data_if_different(
+                version_vector, file_hashes, ts)
 
     def test_change(self):
         with tempfile.TemporaryDirectory() as d:
@@ -409,7 +407,10 @@ class TestEnsureMetaData(unittest.TestCase):
                     'version_vector': {'Z': 12},
                 }
 
-            self.assertTrue(file_ops.ensure_meta_data(get_new_md(), get_ts()))
+            file_ops.write_meta_data_if_different(
+                get_new_md()['version_vector'],
+                get_new_md()['file_hashes'],
+                get_ts())
             self.assertEqual(file_ops.read_meta_data(md_path), get_new_md())
 
 
