@@ -225,9 +225,9 @@ def read_tree_status(path):
 
 
 def sync_file_trees(path_a, path_b):
-    ts_a, ts_b = (read_tree_status(p) for p in (path_a, path_b))
+    a, b = (read_tree_status(p) for p in (path_a, path_b))
     del path_a, path_b
 
-    if ts_a['id'] == ts_b['id']:
+    if a['id'] == b['id']:
         raise Exception('Refusing to sync file trees with identical IDs.')
     raise NotImplementedError()
