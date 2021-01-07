@@ -254,12 +254,13 @@ def sync_file_trees(path_a, path_b):
         raise Exception('Refusing to sync file trees with identical IDs.')
     elif a['disk_hashes'] == b['disk_hashes']:
         vv_join = versionvectors.join(a['post_vv'], b['post_vv'])
-        # Use any([…]) not any(…) to ensure all function calls are executed.
-        if any([ensure_meta_data({
+        # Ensure all function calls are executed. ‘any(…)’ can short-circuit.
+        writes = [ensure_meta_data({
             'id': x['id'],
             'file_hashes': a['disk_hashes'],
             'version_vector': vv_join,
-            }, x) for x in (a, b)]):
+        }, x) for x in (a, b)]
+        if any(writes):
             print(f'Synchronized {a["id"]} and {b["id"]}.')
         else:
             print(f'{a["id"]} and {b["id"]} are already synchronized.')
