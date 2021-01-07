@@ -534,3 +534,7 @@ class TestSyncFileTrees(unittest.TestCase):
                         'version_vector': vv_join,
                         'file_hashes': file_hashes,
                     })
+
+                for x in a, b:
+                    self.assertEqual(file_ops.hash_file_tree(x), file_hashes)
+                del x
