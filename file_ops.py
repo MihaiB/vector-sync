@@ -225,27 +225,22 @@ def read_tree_status(path):
 
 
 def write_meta_data_if_different(version_vector, file_hashes, tree_status):
-    """
-    Write the meta data if it differs from the one in tree_status.
-
-    Returns True if the meta data was written, else False.
-    """
+    """Write the meta data if it differs from the one in tree_status."""
     versionvectors.check(version_vector)
     check_file_hashes(file_hashes)
     check_tree_status(tree_status)
 
     if (version_vector == tree_status['pre_vv']
             and file_hashes == tree_status['known_hashes']):
-        return False
+        return
 
-    md = {
+    meta_data = {
         'id': tree_status['id'],
         'version_vector': version_vector,
         'file_hashes': file_hashes,
     }
-    check_meta_data(md)
-    write_meta_data(md, os.path.join(tree_status['path'], META_FILE))
-    return True
+    check_meta_data(meta_data)
+    write_meta_data(meta_data, os.path.join(tree_status['path'], META_FILE))
 
 
 def sync_file_trees(path_a, path_b):
@@ -262,9 +257,8 @@ def sync_file_trees(path_a, path_b):
 
     if a['disk_hashes'] == b['disk_hashes']:
         vv = versionvectors.join(a['post_vv'], b['post_vv'])
-        hashes = a['disk_hashes']
-        write_meta_data_if_different(vv, hashes, a)
-        write_meta_data_if_different(vv, hashes, b)
+        for tree_status in a, b:
+            write_meta_data_if_different(vv, a['disk_hashes'], tree_status)
         print(f'Synchronized {a["id"]} and {b["id"]}.')
         return
 

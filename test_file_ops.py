@@ -377,8 +377,8 @@ class TestWriteMetaDataIfDifferent(unittest.TestCase):
                 'disk_hashes': {'shopping list': 'hash of food names'},
                 'post_vv': {'B': 3},
             }
-            self.assertFalse(file_ops.write_meta_data_if_different(
-                version_vector, file_hashes, ts))
+            file_ops.write_meta_data_if_different(
+                version_vector, file_hashes, ts)
 
     def test_change(self):
         with tempfile.TemporaryDirectory() as d:
@@ -407,10 +407,10 @@ class TestWriteMetaDataIfDifferent(unittest.TestCase):
                     'version_vector': {'Z': 12},
                 }
 
-            self.assertTrue(file_ops.write_meta_data_if_different(
+            file_ops.write_meta_data_if_different(
                 get_new_md()['version_vector'],
                 get_new_md()['file_hashes'],
-                get_ts()))
+                get_ts())
             self.assertEqual(file_ops.read_meta_data(md_path), get_new_md())
 
 
