@@ -3,6 +3,7 @@ import hashlib
 import os, os.path
 import tempfile
 import unittest
+import versionvectors
 
 
 class TestWriteMetaData(unittest.TestCase):
@@ -308,3 +309,67 @@ class TestInitFileTree(unittest.TestCase):
                 'file_hashes': {},
             }
             self.assertEqual(got, want)
+
+
+class TestReadTreeStatus(unittest.TestCase):
+
+    def test_tree_unchanged_then_changed(self):
+        tree = {
+            'kitchen': {
+                'sink': b'wash fruit',
+                'fridge': b'store fruit',
+            }
+        }
+        with tempfile.TemporaryDirectory() as d:
+            create_files(tree, d)
+            md = {
+                'id': 'notepad',
+                'version_vector': {'cabinet': 7},
+                'file_hashes': {
+                    'kitchen/sink': hash_bytes(tree['kitchen']['sink']),
+                    'kitchen/fridge': hash_bytes(tree['kitchen']['fridge']),
+                },
+            }
+            file_ops.write_meta_data(md, os.path.join(d, file_ops.META_FILE))
+
+            self.assertEqual(file_ops.read_tree_status(d), {
+                'path': d,
+                'id': md['id'],
+                'pre_vv': md['version_vector'],
+                'known_hashes': md['file_hashes'],
+                'disk_hashes': md['file_hashes'],
+                'post_vv': md['version_vector'],
+            })
+
+            create_files({
+                'cellar': {
+                    'champagne': b'sparkling',
+                },
+            }, d)
+            self.assertEqual(file_ops.read_tree_status(d), {
+                'path': d,
+                'id': md['id'],
+                'pre_vv': md['version_vector'],
+                'known_hashes': md['file_hashes'],
+                'disk_hashes': {
+                    'kitchen/sink': md['file_hashes']['kitchen/sink'],
+                    'kitchen/fridge': md['file_hashes']['kitchen/fridge'],
+                    'cellar/champagne': hash_bytes(b'sparkling'),
+                },
+                'post_vv': versionvectors.advance(md['id'],
+                    md['version_vector']),
+            })
+
+
+class TestSyncFileTrees(unittest.TestCase):
+
+    def test_same_ids(self):
+        md = {'id': 'MyFileTree', 'version_vector': {}, 'file_hashes': {}}
+        with tempfile.TemporaryDirectory() as a:
+            with tempfile.TemporaryDirectory() as b:
+                for parent in a, b:
+                    file_ops.write_meta_data(md,
+                            os.path.join(parent, file_ops.META_FILE))
+                with self.assertRaisesRegex(Exception,
+                        '^Refusing to sync file trees with identical IDs.$'):
+                    file_ops.sync_file_trees(a, b)
