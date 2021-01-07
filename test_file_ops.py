@@ -1,5 +1,7 @@
+import contextlib
 import file_ops
 import hashlib
+import io
 import os, os.path
 import tempfile
 import unittest
@@ -361,6 +363,56 @@ class TestReadTreeStatus(unittest.TestCase):
             })
 
 
+class TestEnsureMetaData(unittest.TestCase):
+
+    def test_no_change(self):
+        with tempfile.TemporaryDirectory() as d:
+            md = {
+                'id': 'MyTree',
+                'file_hashes': {'diary': 'hash of entries'},
+                'version_vector': {'A': 17},
+            }
+            ts = {
+                'path': os.path.join(d, 'non', 'existent'),
+                'id': md['id'],
+                'pre_vv': md['version_vector'],
+                'known_hashes': md['file_hashes'],
+                'disk_hashes': {'shopping list': 'hash of food names'},
+                'post_vv': {'B': 3},
+            }
+            self.assertFalse(file_ops.ensure_meta_data(md, ts))
+
+    def test_change(self):
+        with tempfile.TemporaryDirectory() as d:
+            md_path = os.path.join(d, file_ops.META_FILE)
+            def get_old_md():
+                return {
+                    'id': 'MyDir',
+                    'file_hashes': {'diary': 'hash of entries'},
+                    'version_vector': {'A': 2},
+                }
+            file_ops.write_meta_data(get_old_md(), md_path)
+
+            def get_ts():
+                return {
+                    'path': d,
+                    'id': get_old_md()['id'],
+                    'pre_vv': get_old_md()['version_vector'],
+                    'known_hashes': get_old_md()['file_hashes'],
+                    'disk_hashes': {},
+                    'post_vv': {},
+                }
+            def get_new_md():
+                return {
+                    'id': 'MyDir',
+                    'file_hashes': {'documents': 'hash of text'},
+                    'version_vector': {'Z': 12},
+                }
+
+            self.assertTrue(file_ops.ensure_meta_data(get_new_md(), get_ts()))
+            self.assertEqual(file_ops.read_meta_data(md_path), get_new_md())
+
+
 class TestSyncFileTrees(unittest.TestCase):
 
     def test_same_ids(self):
@@ -373,3 +425,116 @@ class TestSyncFileTrees(unittest.TestCase):
                 with self.assertRaisesRegex(Exception,
                         '^Refusing to sync file trees with identical IDs.$'):
                     file_ops.sync_file_trees(a, b)
+
+    def test_already_synchronized(self):
+        tree = {
+                'article': b'news\n',
+                'front_page': {
+                    'interview': b'dialogue',
+                },
+        }
+
+        with tempfile.TemporaryDirectory() as a:
+            with tempfile.TemporaryDirectory() as b:
+                create_files(tree, a)
+                create_files(tree, b)
+
+                vv = {'C': 13}
+                file_hashes = {
+                    'article': hash_bytes(tree['article']),
+                    'front_page/interview': hash_bytes(tree['front_page']['interview']),
+                }
+
+                file_ops.write_meta_data({
+                    'id': 'Apricot',
+                    'version_vector': vv,
+                    'file_hashes': file_hashes,
+                }, os.path.join(a, file_ops.META_FILE))
+
+                file_ops.write_meta_data({
+                    'id': 'Berry',
+                    'version_vector': vv,
+                    'file_hashes': file_hashes,
+                }, os.path.join(b, file_ops.META_FILE))
+
+                stdout = io.StringIO()
+                with contextlib.redirect_stdout(stdout):
+                    file_ops.sync_file_trees(a, b)
+                self.assertEqual(stdout.getvalue(),
+                        'Apricot and Berry are already synchronized.\n')
+
+                self.assertEqual(file_ops.read_meta_data(
+                    os.path.join(a, file_ops.META_FILE)),
+                    {
+                        'id': 'Apricot',
+                        'version_vector': vv,
+                        'file_hashes': file_hashes,
+                    })
+                self.assertEqual(file_ops.read_meta_data(
+                    os.path.join(b, file_ops.META_FILE)),
+                    {
+                        'id': 'Berry',
+                        'version_vector': vv,
+                        'file_hashes': file_hashes,
+                    })
+
+                for x in a, b:
+                    self.assertEqual(file_ops.hash_file_tree(x), file_hashes)
+                del x
+
+    def test_same_files_different_metadata(self):
+        tree = {
+                'article': b'news\n',
+                'front_page': {
+                    'interview': b'dialogue',
+                },
+        }
+
+        with tempfile.TemporaryDirectory() as a:
+            with tempfile.TemporaryDirectory() as b:
+                create_files(tree, a)
+                create_files(tree, b)
+
+                file_hashes = {
+                    'article': hash_bytes(tree['article']),
+                    'front_page/interview': hash_bytes(tree['front_page']['interview']),
+                }
+
+                file_ops.write_meta_data({
+                    'id': 'Apricot',
+                    'version_vector': {'Grapes': 5},
+                    'file_hashes': file_hashes,
+                }, os.path.join(a, file_ops.META_FILE))
+
+                file_ops.write_meta_data({
+                    'id': 'Berry',
+                    'version_vector': {'Tomatoes': 2},
+                    'file_hashes': {'article': hash_bytes(tree['article'])},
+                }, os.path.join(b, file_ops.META_FILE))
+
+                stdout = io.StringIO()
+                with contextlib.redirect_stdout(stdout):
+                    file_ops.sync_file_trees(a, b)
+                self.assertEqual(stdout.getvalue(),
+                        'Synchronized Apricot and Berry.\n')
+
+                vv_join = {'Grapes': 5, 'Tomatoes': 2, 'Berry': 1}
+
+                self.assertEqual(file_ops.read_meta_data(
+                    os.path.join(a, file_ops.META_FILE)),
+                    {
+                        'id': 'Apricot',
+                        'version_vector': vv_join,
+                        'file_hashes': file_hashes,
+                    })
+                self.assertEqual(file_ops.read_meta_data(
+                    os.path.join(b, file_ops.META_FILE)),
+                    {
+                        'id': 'Berry',
+                        'version_vector': vv_join,
+                        'file_hashes': file_hashes,
+                    })
+
+                for x in a, b:
+                    self.assertEqual(file_ops.hash_file_tree(x), file_hashes)
+                del x

@@ -224,10 +224,45 @@ def read_tree_status(path):
     return ts
 
 
+def ensure_meta_data(md, ts):
+    """
+    Write the meta data only if it differs from the file tree's meta data.
+
+    Returns True if the meta data was written, else False.
+    """
+    check_meta_data(md)
+    check_tree_status(ts)
+
+    old_md = {
+        'id': ts['id'],
+        'version_vector': ts['pre_vv'],
+        'file_hashes': ts['known_hashes'],
+    }
+    check_meta_data(old_md)
+    if md == old_md:
+        return False
+
+    write_meta_data(md, os.path.join(ts['path'], META_FILE))
+    return True
+
+
 def sync_file_trees(path_a, path_b):
     a, b = (read_tree_status(p) for p in (path_a, path_b))
     del path_a, path_b
 
     if a['id'] == b['id']:
         raise Exception('Refusing to sync file trees with identical IDs.')
-    raise NotImplementedError()
+    elif a['disk_hashes'] == b['disk_hashes']:
+        vv_join = versionvectors.join(a['post_vv'], b['post_vv'])
+        # Execute all function calls. ‘any(…)’ can short-circuit.
+        writes = [ensure_meta_data({
+            'id': x['id'],
+            'file_hashes': a['disk_hashes'],
+            'version_vector': vv_join,
+        }, x) for x in (a, b)]
+        if any(writes):
+            print(f'Synchronized {a["id"]} and {b["id"]}.')
+        else:
+            print(f'{a["id"]} and {b["id"]} are already synchronized.')
+    else:
+        raise NotImplementedError()
