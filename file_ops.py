@@ -154,3 +154,80 @@ def init_file_tree(*, dirpath, tree_id):
         'file_hashes': {},
     }
     write_meta_data(md, filepath)
+
+
+def check_tree_status(ts):
+    """
+    >>> check_tree_status([])
+    Traceback (most recent call last):
+    ValueError: tree status is not dict
+    >>> check_tree_status({'id': 'A', 'hello': 'world'})
+    Traceback (most recent call last):
+    ValueError: invalid tree status keys
+    >>> check_tree_status({'path': 5, 'id': 'A', 'pre_vv': {},
+    ...     'known_hashes': {}, 'disk_hashes': {}, 'post_vv': {}})
+    Traceback (most recent call last):
+    ValueError: tree status path is not str
+    >>> check_tree_status({'path': '.', 'id': None, 'pre_vv': {},
+    ...     'known_hashes': {}, 'disk_hashes': {}, 'post_vv': {}})
+    Traceback (most recent call last):
+    ValueError: tree status id is not str
+    >>> check_tree_status({'path': '.', 'id': 'A', 'pre_vv': 5,
+    ...     'known_hashes': {}, 'disk_hashes': {}, 'post_vv': {}})
+    Traceback (most recent call last):
+    ValueError: version vector is not dict
+    >>> check_tree_status({'path': '.', 'id': 'A', 'pre_vv': {},
+    ...     'known_hashes': 0, 'disk_hashes': {}, 'post_vv': {}})
+    Traceback (most recent call last):
+    ValueError: file hashes are not dict
+    >>> check_tree_status({'path': '.', 'id': 'A', 'pre_vv': {},
+    ...     'known_hashes': {}, 'disk_hashes': {1: ''}, 'post_vv': {}})
+    Traceback (most recent call last):
+    ValueError: file hashes key is not str
+    >>> check_tree_status({'path': '.', 'id': 'A', 'pre_vv': {},
+    ...     'known_hashes': {}, 'disk_hashes': {}, 'post_vv': {'A': 'B'}})
+    Traceback (most recent call last):
+    ValueError: version vector value is not int
+
+    >>> check_tree_status({'path': '.', 'id': 'A', 'pre_vv': {},
+    ...     'known_hashes': {}, 'disk_hashes': {}, 'post_vv': {}})
+    """
+    if type(ts) is not dict:
+        raise ValueError('tree status is not dict')
+    if set(ts.keys()) != {'path', 'id', 'pre_vv',
+            'known_hashes', 'disk_hashes', 'post_vv'}:
+        raise ValueError('invalid tree status keys')
+    if type(ts['path']) is not str:
+        raise ValueError('tree status path is not str')
+    if type(ts['id']) is not str:
+        raise ValueError('tree status id is not str')
+    versionvectors.check(ts['pre_vv'])
+    check_file_hashes(ts['known_hashes'])
+    check_file_hashes(ts['disk_hashes'])
+    versionvectors.check(ts['post_vv'])
+
+
+def read_tree_status(path):
+    md = read_meta_data(os.path.join(path, META_FILE))
+    disk_hashes = hash_file_tree(path)
+    post_vv = md['version_vector'] if disk_hashes == md['file_hashes'] \
+            else versionvectors.advance(md['id'], md['version_vector'])
+    ts = {
+        'path': path,
+        'id': md['id'],
+        'pre_vv': md['version_vector'],
+        'known_hashes': md['file_hashes'],
+        'disk_hashes': disk_hashes,
+        'post_vv': post_vv,
+    }
+    check_tree_status(ts)
+    return ts
+
+
+def sync_file_trees(path_a, path_b):
+    ts_a, ts_b = (read_tree_status(p) for p in (path_a, path_b))
+    del path_a, path_b
+
+    if ts_a['id'] == ts_b['id']:
+        raise Exception('Refusing to sync file trees with identical IDs.')
+    raise NotImplementedError()
