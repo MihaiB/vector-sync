@@ -304,12 +304,23 @@ def sync_file_trees(path_a, path_b):
         return
 
     if a['disk_hashes'] == b['disk_hashes']:
-        vv = versionvectors.join(a['post_vv'], b['post_vv'])
-        hashes = a['disk_hashes']
-        for tree_status in a, b:
-            write_meta_data_if_different(vv, hashes, tree_status)
-        del vv, hashes, tree_status
-        print(f'Synchronized {a["id"]} and {b["id"]}.')
-        return
+        r = a
+    elif versionvectors.less(a['post_vv'], b['post_vv']):
+        r = b
+    elif versionvectors.less(b['post_vv'], a['post_vv']):
+        r = a
+    else:
+        raise NotImplementedError()
 
-    raise NotImplementedError()
+    for w in a, b:
+        args = {'read_from_ts': r, 'write_to_ts': w}
+        if not confirm_overwrite_tree(**args):
+            raise Exception('canceled')
+        overwrite_tree(**args)
+    del w, args
+
+    vv = versionvectors.join(a['post_vv'], b['post_vv'])
+    for ts in a, b:
+        write_meta_data_if_different(vv, r['disk_hashes'], ts)
+    del r, vv, ts
+    print(f'Synchronized {a["id"]} and {b["id"]}.')
