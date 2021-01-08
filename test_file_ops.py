@@ -303,7 +303,9 @@ class TestInitFileTree(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             with open(os.path.join(d, 'book'), 'x', encoding='utf-8') as f:
                 f.write('chapter')
-            file_ops.init_file_tree(dirpath=d, tree_id='Main Library')
+            stdout = io.StringIO()
+            with contextlib.redirect_stdout(stdout):
+                file_ops.init_file_tree(dirpath=d, tree_id='Main Library')
 
             got = file_ops.read_meta_data(os.path.join(d, file_ops.META_FILE))
             want = {
@@ -312,6 +314,9 @@ class TestInitFileTree(unittest.TestCase):
                 'file_hashes': {},
             }
             self.assertEqual(got, want)
+
+            self.assertEqual(stdout.getvalue(),
+                    f'Initialized "Main Library" in {json.dumps(d)}.\n')
 
 
 class TestReadTreeStatus(unittest.TestCase):
