@@ -780,11 +780,11 @@ class TestSyncFileTrees(unittest.TestCase):
                     with unittest.mock.patch('builtins.input', spec_set=True,
                             return_value='n'):
                         with contextlib.redirect_stdout(io.StringIO()):
+                            args = (orig_dir, changed_dir)
+                            if flip_args:
+                                args = reversed(args)
                             with self.assertRaisesRegex(Exception,
                                     '^canceled by the user$'):
-                                args = (orig_dir, changed_dir)
-                                if flip_args:
-                                    args = reversed(args)
                                 file_ops.sync_file_trees(*args)
                     check(orig_dir, changed_dir, orig_hashes, changed_hashes)
 
