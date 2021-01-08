@@ -710,3 +710,80 @@ class TestSyncFileTrees(unittest.TestCase):
                 for x in a, b:
                     self.assertEqual(file_ops.hash_file_tree(x), file_hashes)
                 del x
+
+    def test_sync_changes(self):
+        orig_tree = {
+            'data': b'original',
+            'glass': b'water',
+            'letter': {'a': b'alpha', 'b': b'beta'},
+
+            'carrot': b'orange',
+
+            'Hg': b'mercury',
+        }
+
+        changed_tree = {
+            'data': b'alternative',
+            'glass': {'watch': b'face', 'window': b'pane'},
+            'letter': b'private',
+
+            'tomato': b'red',
+
+            'Hg': b'mercury',
+        }
+
+        version_vector = {'Orig': 2, 'Changed': 4, 'Other': 7}
+
+        def set_up(orig_dir, changed_dir):
+            create_files(orig_tree, orig_dir)
+            hashes = file_ops.hash_file_tree(orig_dir)
+            file_ops.write_meta_data({
+                'id': 'Orig',
+                'version_vector': version_vector,
+                'file_hashes': hashes,
+            }, os.path.join(orig_dir, file_ops.META_FILE))
+
+            create_files(changed_tree, changed_dir)
+            file_ops.write_meta_data({
+                'id': 'Changed',
+                'version_vector': version_vector,
+                'file_hashes': hashes,
+            }, os.path.join(changed_dir, file_ops.META_FILE))
+
+        def check(orig_dir, changed_dir, want_hashes):
+            vv = versionvectors.advance('Changed', version_vector)
+
+            self.assertEqual(file_ops.read_tree_status(orig_dir), {
+                'path': orig_dir,
+                'id': 'Orig',
+                'pre_vv': vv,
+                'known_hashes': want_hashes,
+                'disk_hashes': want_hashes,
+                'post_vv': vv,
+            })
+            self.assertEqual(file_ops.read_tree_status(changed_dir), {
+                'path': changed_dir,
+                'id': 'Changed',
+                'pre_vv': vv,
+                'known_hashes': want_hashes,
+                'disk_hashes': want_hashes,
+                'post_vv': vv,
+            })
+
+        def perform_test(*, flip_args):
+            with tempfile.TemporaryDirectory() as orig_dir:
+                with tempfile.TemporaryDirectory() as changed_dir:
+                    set_up(orig_dir, changed_dir)
+                    want_hashes = file_ops.hash_file_tree(changed_dir)
+                    with unittest.mock.patch('builtins.input', spec_set=True,
+                            return_value='y'):
+                            with contextlib.redirect_stdout(io.StringIO()):
+                                args = (orig_dir, changed_dir)
+                                if flip_args:
+                                    args = reversed(args)
+                                file_ops.sync_file_trees(*args)
+                    check(orig_dir, changed_dir, want_hashes)
+
+        for flip in False, True:
+            perform_test(flip_args=flip)
+        del flip
