@@ -2,6 +2,7 @@ import contextlib
 import file_ops
 import hashlib
 import io
+import json
 import os, os.path
 import tempfile
 import unittest, unittest.mock
@@ -123,7 +124,7 @@ class TestHashFileTree(unittest.TestCase):
                 create_files(bad_tree, d)
                 bad_path = os.path.join(d, parent, file_ops.META_FILE)
                 with self.assertRaisesRegex(Exception,
-                        f'^forbidden tree item: {bad_path}$'):
+                        f'^forbidden tree item: {json.dumps(bad_path)}$'):
                     file_ops.hash_file_tree(d)
 
     def test_error_for_empty_dirs(self):
@@ -131,7 +132,7 @@ class TestHashFileTree(unittest.TestCase):
             create_files({'f': b'', 'nes': {'ted': {}}}, d)
             bad_path = os.path.join(d, 'nes', 'ted')
             with self.assertRaisesRegex(Exception,
-                    f'^forbidden empty directory: {bad_path}$'):
+                    f'^forbidden empty directory: {json.dumps(bad_path)}$'):
                 file_ops.hash_file_tree(d)
 
     def test_accepts_empty_dir(self):
@@ -595,7 +596,7 @@ class TestSyncFileTrees(unittest.TestCase):
                     file_ops.write_meta_data(md,
                             os.path.join(parent, file_ops.META_FILE))
                 with self.assertRaisesRegex(Exception,
-                        '^Refusing to sync file trees with identical IDs\\.$'):
+                        '^file trees have the same ID: "MyFileTree"$'):
                     file_ops.sync_file_trees(a, b)
 
     def test_already_synchronized(self):
@@ -711,6 +712,86 @@ class TestSyncFileTrees(unittest.TestCase):
                     self.assertEqual(file_ops.hash_file_tree(x), file_hashes)
                 del x
 
+    def test_user_does_not_confirm_overwriting(self):
+        orig_tree = {
+            'data': b'original',
+            'glass': b'water',
+            'letter': {'a': b'alpha', 'b': b'beta'},
+
+            'carrot': b'orange',
+
+            'Hg': b'mercury',
+        }
+
+        changed_tree = {
+            'data': b'alternative',
+            'glass': {'watch': b'face', 'window': b'pane'},
+            'letter': b'private',
+
+            'tomato': b'red',
+
+            'Hg': b'mercury',
+        }
+
+        version_vector = {'Orig': 2, 'Changed': 4, 'Other': 7}
+
+        def set_up(orig_dir, changed_dir):
+            create_files(orig_tree, orig_dir)
+            hashes = file_ops.hash_file_tree(orig_dir)
+            file_ops.write_meta_data({
+                'id': 'Orig',
+                'version_vector': version_vector,
+                'file_hashes': hashes,
+            }, os.path.join(orig_dir, file_ops.META_FILE))
+
+            create_files(changed_tree, changed_dir)
+            file_ops.write_meta_data({
+                'id': 'Changed',
+                'version_vector': version_vector,
+                'file_hashes': hashes,
+            }, os.path.join(changed_dir, file_ops.META_FILE))
+
+        def check(orig_dir, changed_dir, orig_hashes, changed_hashes):
+            changed_vv = versionvectors.advance('Changed', version_vector)
+
+            self.assertEqual(file_ops.read_tree_status(orig_dir), {
+                'path': orig_dir,
+                'id': 'Orig',
+                'pre_vv': version_vector,
+                'known_hashes': orig_hashes,
+                'disk_hashes': orig_hashes,
+                'post_vv': version_vector,
+            })
+            self.assertEqual(file_ops.read_tree_status(changed_dir), {
+                'path': changed_dir,
+                'id': 'Changed',
+                'pre_vv': version_vector,
+                'known_hashes': orig_hashes,
+                'disk_hashes': changed_hashes,
+                'post_vv': changed_vv,
+            })
+
+        def perform_test(*, flip_args):
+            with tempfile.TemporaryDirectory() as orig_dir:
+                with tempfile.TemporaryDirectory() as changed_dir:
+                    set_up(orig_dir, changed_dir)
+                    orig_hashes = file_ops.hash_file_tree(orig_dir)
+                    changed_hashes = file_ops.hash_file_tree(changed_dir)
+                    with unittest.mock.patch('builtins.input', spec_set=True,
+                            return_value='n'):
+                        with contextlib.redirect_stdout(io.StringIO()):
+                            with self.assertRaisesRegex(Exception,
+                                    '^canceled by the user$'):
+                                args = (orig_dir, changed_dir)
+                                if flip_args:
+                                    args = reversed(args)
+                                file_ops.sync_file_trees(*args)
+                    check(orig_dir, changed_dir, orig_hashes, changed_hashes)
+
+        for flip in False, True:
+            perform_test(flip_args=flip)
+        del flip
+
     def test_sync_changes(self):
         orig_tree = {
             'data': b'original',
@@ -777,11 +858,11 @@ class TestSyncFileTrees(unittest.TestCase):
                     want_hashes = file_ops.hash_file_tree(changed_dir)
                     with unittest.mock.patch('builtins.input', spec_set=True,
                             return_value='y'):
-                            with contextlib.redirect_stdout(io.StringIO()):
-                                args = (orig_dir, changed_dir)
-                                if flip_args:
-                                    args = reversed(args)
-                                file_ops.sync_file_trees(*args)
+                        with contextlib.redirect_stdout(io.StringIO()):
+                            args = (orig_dir, changed_dir)
+                            if flip_args:
+                                args = reversed(args)
+                            file_ops.sync_file_trees(*args)
                     check(orig_dir, changed_dir, want_hashes)
 
         for flip in False, True:
@@ -852,11 +933,11 @@ class TestSyncFileTrees(unittest.TestCase):
                     want_hashes = file_ops.hash_file_tree(new_dir)
                     with unittest.mock.patch('builtins.input', spec_set=True,
                             return_value='y'):
-                            with contextlib.redirect_stdout(io.StringIO()):
-                                args = (old_dir, new_dir)
-                                if flip_args:
-                                    args = reversed(args)
-                                file_ops.sync_file_trees(*args)
+                        with contextlib.redirect_stdout(io.StringIO()):
+                            args = (old_dir, new_dir)
+                            if flip_args:
+                                args = reversed(args)
+                            file_ops.sync_file_trees(*args)
                     check(old_dir, new_dir, want_hashes)
 
         for flip in False, True:
@@ -883,6 +964,6 @@ class TestSyncFileTrees(unittest.TestCase):
                 }, os.path.join(b, file_ops.META_FILE))
 
                 with self.assertRaisesRegex(Exception,
-                        '^Almond and Berry have diverged\\.'
-                        + ' Reconcile the trees then run the sync again\\.$'):
+                        '^"Almond" and "Berry" have diverged,'
+                        + ' reconcile their files first$'):
                     file_ops.sync_file_trees(a, b)

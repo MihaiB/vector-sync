@@ -107,7 +107,7 @@ def _hash_file_tree(tree_path, *, is_root):
         if child.name == META_FILE:
             if is_root and child.is_file():
                 continue
-            raise Exception(f'forbidden tree item: {child_path}')
+            raise Exception(f'forbidden tree item: {json.dumps(child_path)}')
 
         if child.is_file():
             file_hashes[child.name] = hash_file(child_path)
@@ -117,7 +117,7 @@ def _hash_file_tree(tree_path, *, is_root):
                 file_hashes[os.path.join(child.name, subpath)] = hash_val
 
     if not file_hashes and not is_root:
-        raise Exception(f'forbidden empty directory: {tree_path}')
+        raise Exception(f'forbidden empty directory: {json.dumps(tree_path)}')
 
     check_file_hashes(file_hashes)
     return file_hashes
@@ -296,7 +296,7 @@ def sync_file_trees(path_a, path_b):
     del path_a, path_b
 
     if a['id'] == b['id']:
-        raise Exception('Refusing to sync file trees with identical IDs.')
+        raise Exception(f'file trees have the same ID: {json.dumps(a["id"])}')
 
     if (a['pre_vv'] == a['post_vv'] == b['pre_vv'] == b['post_vv']
             and a['known_hashes'] == b['known_hashes']):
@@ -310,13 +310,13 @@ def sync_file_trees(path_a, path_b):
     elif versionvectors.less(b['post_vv'], a['post_vv']):
         r = a
     else:
-        raise Exception(f'{a["id"]} and {b["id"]} have diverged.'
-                + ' Reconcile the trees then run the sync again.')
+        raise Exception(f'{json.dumps(a["id"])} and {json.dumps(b["id"])}'
+                + ' have diverged, reconcile their files first')
 
     for w in a, b:
         args = {'read_from_ts': r, 'write_to_ts': w}
         if not confirm_overwrite_tree(**args):
-            raise Exception('canceled')
+            raise Exception('canceled by the user')
         overwrite_tree(**args)
     del w, args
 
