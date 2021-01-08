@@ -310,7 +310,8 @@ def sync_file_trees(path_a, path_b):
     elif versionvectors.less(b['post_vv'], a['post_vv']):
         r = a
     else:
-        raise NotImplementedError()
+        raise Exception(f'{a["id"]} and {b["id"]} have diverged.'
+                + ' Reconcile the trees then run the sync again.')
 
     for w in a, b:
         args = {'read_from_ts': r, 'write_to_ts': w}

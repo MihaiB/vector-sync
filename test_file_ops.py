@@ -595,7 +595,7 @@ class TestSyncFileTrees(unittest.TestCase):
                     file_ops.write_meta_data(md,
                             os.path.join(parent, file_ops.META_FILE))
                 with self.assertRaisesRegex(Exception,
-                        '^Refusing to sync file trees with identical IDs.$'):
+                        '^Refusing to sync file trees with identical IDs\\.$'):
                     file_ops.sync_file_trees(a, b)
 
     def test_already_synchronized(self):
@@ -862,3 +862,27 @@ class TestSyncFileTrees(unittest.TestCase):
         for flip in False, True:
             perform_test(flip_args=flip)
         del flip
+
+    def test_diverged(self):
+        with tempfile.TemporaryDirectory() as a:
+            # ‘a’ has no local changes
+            create_files({'todo': b'tasks'}, a)
+            file_ops.write_meta_data({
+                'id': 'Almond',
+                'version_vector': {'Almond': 3, 'Berry': 5},
+                'file_hashes': file_ops.hash_file_tree(a),
+            }, os.path.join(a, file_ops.META_FILE))
+
+            with tempfile.TemporaryDirectory() as b:
+                # ‘b’ starts behind ‘a’ and diverges by having local changes.
+                create_files({'shopping': b'items'}, b)
+                file_ops.write_meta_data({
+                    'id': 'Berry',
+                    'version_vector': {'Almond': 2, 'Berry': 5},
+                    'file_hashes': {'other': hash_bytes(b'state')},
+                }, os.path.join(b, file_ops.META_FILE))
+
+                with self.assertRaisesRegex(Exception,
+                        '^Almond and Berry have diverged\\.'
+                        + ' Reconcile the trees then run the sync again\\.$'):
+                    file_ops.sync_file_trees(a, b)
