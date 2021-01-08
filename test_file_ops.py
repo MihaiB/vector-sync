@@ -446,17 +446,17 @@ class TestConfirmOverwriteTree(unittest.TestCase):
 
     def test_changes(self):
         read_from_tree = {
-            'letter': b'private',
-            'glass': {'window': b'pane', 'watch': b'face'},
             'data': b'alternative',
+            'glass': {'watch': b'face', 'window': b'pane'},
+            'letter': b'private',
 
             'tomato': b'red',
         }
 
         write_to_tree = {
-            'letter': {'a': b'alpha', 'b': b'beta'},
-            'glass': b'water',
             'data': b'original',
+            'glass': b'water',
+            'letter': {'a': b'alpha', 'b': b'beta'},
 
             'carrot': b'orange',
         }
