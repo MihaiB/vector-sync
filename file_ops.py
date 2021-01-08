@@ -244,6 +244,7 @@ def write_meta_data_if_different(version_vector, file_hashes, tree_status):
 
 
 def confirm_overwrite_tree(*, read_from_ts, write_to_ts):
+    """Ask the user to confirm if there are changes then return True/False."""
     for ts in read_from_ts, write_to_ts:
         check_tree_status(ts)
     del ts
