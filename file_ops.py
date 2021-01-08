@@ -154,6 +154,7 @@ def init_file_tree(*, dirpath, tree_id):
         'file_hashes': {},
     }
     write_meta_data(md, filepath)
+    print(f'Initialized {json.dumps(tree_id)} in {json.dumps(dirpath)}.')
 
 
 def check_tree_status(ts):
