@@ -313,10 +313,11 @@ def sync_file_trees(path_a, path_b):
         raise NotImplementedError()
 
     for w in a, b:
-        if not confirm_overwrite_tree(read_from_ts=r, write_to_ts=w):
+        args = {'read_from_ts': r, 'write_to_ts': w}
+        if not confirm_overwrite_tree(**args):
             raise Exception('canceled')
-        overwrite_tree(read_from_ts=r, write_to_ts=w)
-    del w
+        overwrite_tree(**args)
+    del w, args
 
     vv = versionvectors.join(a['post_vv'], b['post_vv'])
     for ts in a, b:
