@@ -455,6 +455,7 @@ class TestConfirmOverwriteTree(unittest.TestCase):
             'data': b'alternative',
             'glass': {'watch': b'face', 'window': b'pane'},
             'letter': b'private',
+            'new\nline': b'\n',
 
             'tomato': b'red',
 
@@ -465,6 +466,7 @@ class TestConfirmOverwriteTree(unittest.TestCase):
             'data': b'original',
             'glass': b'water',
             'letter': {'a': b'alpha', 'b': b'beta'},
+            'new\nline': b'\r\n',
 
             'carrot': b'orange',
 
@@ -498,19 +500,20 @@ class TestConfirmOverwriteTree(unittest.TestCase):
                         self.assertEqual(result, expected)
                         input_p.assert_called_once_with('Change Paper? [y/N] ')
                         self.assertEqual(stdout.getvalue(), '''• Add:
-+ glass/watch
-+ glass/window
-+ letter
-+ tomato
++ "glass/watch"
++ "glass/window"
++ "letter"
++ "tomato"
 
 • Delete:
-- carrot
-- glass
-- letter/a
-- letter/b
+- "carrot"
+- "glass"
+- "letter/a"
+- "letter/b"
 
 • Overwrite:
-≠ data
+≠ "data"
+≠ "new\\nline"
 
 ''')
 
@@ -639,7 +642,7 @@ class TestSyncFileTrees(unittest.TestCase):
                 with contextlib.redirect_stdout(stdout):
                     file_ops.sync_file_trees(a, b)
                 self.assertEqual(stdout.getvalue(),
-                        'Apricot and Berry are already synchronized.\n')
+                        '"Apricot" and "Berry" are already synchronized.\n')
 
                 self.assertEqual(file_ops.read_meta_data(
                     os.path.join(a, file_ops.META_FILE)),
@@ -694,7 +697,7 @@ class TestSyncFileTrees(unittest.TestCase):
                 with contextlib.redirect_stdout(stdout):
                     file_ops.sync_file_trees(a, b)
                 self.assertEqual(stdout.getvalue(),
-                        'Synchronized Apricot and Berry.\n')
+                        'Synchronized "Apricot" and "Berry".\n')
 
                 vv_join = {'Grapes': 5, 'Tomatoes': 2, 'Berry': 1}
 
