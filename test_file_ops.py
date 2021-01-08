@@ -787,3 +787,78 @@ class TestSyncFileTrees(unittest.TestCase):
         for flip in False, True:
             perform_test(flip_args=flip)
         del flip
+
+    def test_sync_new_to_old(self):
+        old_tree = {
+            'data': b'old',
+            'glass': b'water',
+            'letter': {'a': b'alpha', 'b': b'beta'},
+
+            'carrot': b'orange',
+
+            'Hg': b'mercury',
+        }
+
+        new_tree = {
+            'data': b'new',
+            'glass': {'watch': b'face', 'window': b'pane'},
+            'letter': b'private',
+
+            'tomato': b'red',
+
+            'Hg': b'mercury',
+        }
+
+        old_vv = {'Alpha': 3, 'Delta': 7}
+        new_vv = {'Alpha': 3, 'Delta': 9}
+
+        def set_up(old_dir, new_dir):
+            create_files(old_tree, old_dir)
+            file_ops.write_meta_data({
+                'id': 'Old',
+                'version_vector': old_vv,
+                'file_hashes': file_ops.hash_file_tree(old_dir),
+            }, os.path.join(old_dir, file_ops.META_FILE))
+
+            create_files(new_tree, new_dir)
+            file_ops.write_meta_data({
+                'id': 'New',
+                'version_vector': new_vv,
+                'file_hashes': file_ops.hash_file_tree(new_dir),
+            }, os.path.join(new_dir, file_ops.META_FILE))
+
+        def check(old_dir, new_dir, want_hashes):
+            self.assertEqual(file_ops.read_tree_status(old_dir), {
+                'path': old_dir,
+                'id': 'Old',
+                'pre_vv': new_vv,
+                'known_hashes': want_hashes,
+                'disk_hashes': want_hashes,
+                'post_vv': new_vv,
+            })
+            self.assertEqual(file_ops.read_tree_status(new_dir), {
+                'path': new_dir,
+                'id': 'New',
+                'pre_vv': new_vv,
+                'known_hashes': want_hashes,
+                'disk_hashes': want_hashes,
+                'post_vv': new_vv,
+            })
+
+        def perform_test(*, flip_args):
+            with tempfile.TemporaryDirectory() as old_dir:
+                with tempfile.TemporaryDirectory() as new_dir:
+                    set_up(old_dir, new_dir)
+                    want_hashes = file_ops.hash_file_tree(new_dir)
+                    with unittest.mock.patch('builtins.input', spec_set=True,
+                            return_value='y'):
+                            with contextlib.redirect_stdout(io.StringIO()):
+                                args = (old_dir, new_dir)
+                                if flip_args:
+                                    args = reversed(args)
+                                file_ops.sync_file_trees(*args)
+                    check(old_dir, new_dir, want_hashes)
+
+        for flip in False, True:
+            perform_test(flip_args=flip)
+        del flip
