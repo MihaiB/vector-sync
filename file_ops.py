@@ -300,30 +300,37 @@ def sync_file_trees(path_a, path_b):
         raise Exception(f'file trees have the same ID: {json.dumps(a["id"])}')
 
     if (a['pre_vv'] == a['post_vv'] == b['pre_vv'] == b['post_vv']
-            and a['known_hashes'] == b['known_hashes']):
+            and a['known_hashes'] == a['disk_hashes']
+            == b['known_hashes'] == b['disk_hashes']):
         print(json.dumps(a["id"]), 'and', json.dumps(b["id"]),
             'are already synchronized.')
         return
 
     if a['disk_hashes'] == b['disk_hashes']:
-        r = a
-    elif versionvectors.less(a['post_vv'], b['post_vv']):
-        r = b
-    elif versionvectors.less(b['post_vv'], a['post_vv']):
-        r = a
-    else:
-        raise Exception(f'{json.dumps(a["id"])} and {json.dumps(b["id"])}'
-                + ' have diverged, reconcile their files first')
+        vv_join = versionvectors.join(a['post_vv'], b['post_vv'])
+        for ts in a, b:
+            write_meta_data_if_different(vv_join, a['disk_hashes'], ts)
+        del ts, vv_join
 
-    for w in a, b:
-        args = {'read_from_ts': r, 'write_to_ts': w}
+        print(f'Synchronized {json.dumps(a["id"])} and {json.dumps(b["id"])}.')
+        return
+
+    if versionvectors.less(a['post_vv'], b['post_vv']):
+        args = {'read_from_ts': b, 'write_to_ts': a}
         if not confirm_overwrite_tree(**args):
             raise Exception('canceled by the user')
         overwrite_tree(**args)
-    del w, args
+        del args
 
-    vv = versionvectors.join(a['post_vv'], b['post_vv'])
-    for ts in a, b:
-        write_meta_data_if_different(vv, r['disk_hashes'], ts)
-    del r, vv, ts
-    print(f'Synchronized {json.dumps(a["id"])} and {json.dumps(b["id"])}.')
+        for ts in a, b:
+            write_meta_data_if_different(b['post_vv'], b['disk_hashes'], ts)
+        del ts
+
+        print(f'Synchronized {json.dumps(a["id"])} and {json.dumps(b["id"])}.')
+        return
+
+    if versionvectors.less(b['post_vv'], a['post_vv']):
+        return sync_file_trees(b['path'], a['path'])
+
+    raise Exception(f'{json.dumps(a["id"])} and {json.dumps(b["id"])}'
+            + ' have diverged, reconcile their files first')
