@@ -243,6 +243,36 @@ def write_meta_data_if_different(version_vector, file_hashes, tree_status):
     write_meta_data(meta_data, os.path.join(tree_status['path'], META_FILE))
 
 
+def confirm_overwrite_tree(*, read_from_ts, write_to_ts):
+    for ts in read_from_ts, write_to_ts:
+        check_tree_status(ts)
+    del ts
+
+    r, w = (ts['disk_hashes'] for ts in (read_from_ts, write_to_ts))
+
+    add_paths = {p for p in r if p not in w}
+    del_paths = {p for p in w if p not in r}
+    overwrite_paths = {p for p in w if p in r and r[p] != w[p]}
+
+    empty = True
+    for paths, word, char in (
+            (add_paths, 'Add', '+'),
+            (del_paths, 'Delete', '-'),
+            (overwrite_paths, 'Overwrite', '≠'),
+            ):
+        if not paths:
+            continue
+        empty = False
+        print(f'• {word}:')
+        for p in sorted(paths):
+            print(char, p)
+        print()
+
+    if empty:
+        return True
+    return input(f'Change {write_to_ts["id"]}? [y/N] ') == 'y'
+
+
 def sync_file_trees(path_a, path_b):
     a, b = (read_tree_status(p) for p in (path_a, path_b))
     del path_a, path_b

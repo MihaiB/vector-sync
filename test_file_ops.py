@@ -4,7 +4,7 @@ import hashlib
 import io
 import os, os.path
 import tempfile
-import unittest
+import unittest, unittest.mock
 import versionvectors
 
 
@@ -412,6 +412,97 @@ class TestWriteMetaDataIfDifferent(unittest.TestCase):
                 get_new_md()['file_hashes'],
                 get_ts())
             self.assertEqual(file_ops.read_meta_data(md_path), get_new_md())
+
+
+class TestConfirmOverwriteTree(unittest.TestCase):
+
+    def test_no_changes(self):
+        for tree in (
+                {},
+                {
+                    'fruit': {
+                        'apple': b'different colors',
+                        'banana': b'yellow',
+                        'tomato': b'red',
+                    },
+                    'math': b'theorem',
+                },
+                ):
+            with tempfile.TemporaryDirectory() as a:
+                create_files(tree, a)
+                file_ops.write_meta_data({
+                    'id': 'A', 'version_vector': {}, 'file_hashes': {},
+                }, os.path.join(a, file_ops.META_FILE))
+
+                with tempfile.TemporaryDirectory() as b:
+                    create_files(tree, b)
+                    file_ops.write_meta_data({
+                        'id': 'B', 'version_vector': {}, 'file_hashes': {},
+                    }, os.path.join(b, file_ops.META_FILE))
+
+                    self.assertTrue(file_ops.confirm_overwrite_tree(
+                        read_from_ts=file_ops.read_tree_status(a),
+                        write_to_ts=file_ops.read_tree_status(b)))
+
+    def test_changes(self):
+        read_from_tree = {
+            'letter': b'private',
+            'glass': {'window': b'pane', 'watch': b'face'},
+            'data': b'alternative',
+
+            'tomato': b'red',
+        }
+
+        write_to_tree = {
+            'letter': {'a': b'alpha', 'b': b'beta'},
+            'glass': b'water',
+            'data': b'original',
+
+            'carrot': b'orange',
+        }
+
+        with tempfile.TemporaryDirectory() as read_from_dir:
+            create_files(read_from_tree, read_from_dir)
+            file_ops.write_meta_data({
+                'id': 'Pen', 'version_vector': {}, 'file_hashes': {},
+            }, os.path.join(read_from_dir, file_ops.META_FILE))
+            with tempfile.TemporaryDirectory() as write_to_dir:
+                create_files(write_to_tree, write_to_dir)
+                file_ops.write_meta_data({
+                    'id': 'Paper', 'version_vector': {}, 'file_hashes': {},
+                }, os.path.join(write_to_dir, file_ops.META_FILE))
+
+                for answer, expected in {
+                        '': False, 'n': False, 'x': False, 'Y': False,
+                        'y': True,
+                }.items():
+                    with unittest.mock.patch('builtins.input', spec_set=True,
+                            return_value=answer) as input_p:
+                        stdout = io.StringIO()
+                        with contextlib.redirect_stdout(stdout):
+                            result = file_ops.confirm_overwrite_tree(
+                                    read_from_ts=file_ops.read_tree_status(
+                                        read_from_dir),
+                                    write_to_ts=file_ops.read_tree_status(
+                                        write_to_dir))
+                        self.assertEqual(result, expected)
+                        input_p.assert_called_once_with('Change Paper? [y/N] ')
+                        self.assertEqual(stdout.getvalue(), '''• Add:
++ glass/watch
++ glass/window
++ letter
++ tomato
+
+• Delete:
+- carrot
+- glass
+- letter/a
+- letter/b
+
+• Overwrite:
+≠ data
+
+''')
 
 
 class TestSyncFileTrees(unittest.TestCase):
