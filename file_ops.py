@@ -274,6 +274,23 @@ def confirm_overwrite_tree(*, read_from_ts, write_to_ts):
     return input(f'Change {write_to_ts["id"]}? [y/N] ') == 'y'
 
 
+def overwrite_tree(*, read_from_ts, write_to_ts):
+    for ts in read_from_ts, write_to_ts:
+        check_tree_status(ts)
+    del ts
+
+    r, w = (ts['disk_hashes'] for ts in (read_from_ts, write_to_ts))
+
+    for p in w:
+        if p not in r:
+            delete_up(os.path.join(write_to_ts['path'], p))
+
+    for p in r:
+        if p not in w or w[p] != r[p]:
+            copy_down(os.path.join(read_from_ts['path'], p),
+                    os.path.join(write_to_ts['path'], p))
+
+
 def sync_file_trees(path_a, path_b):
     a, b = (read_tree_status(p) for p in (path_a, path_b))
     del path_a, path_b

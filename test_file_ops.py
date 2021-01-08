@@ -451,6 +451,8 @@ class TestConfirmOverwriteTree(unittest.TestCase):
             'letter': b'private',
 
             'tomato': b'red',
+
+            'Hg': b'mercury',
         }
 
         write_to_tree = {
@@ -459,6 +461,8 @@ class TestConfirmOverwriteTree(unittest.TestCase):
             'letter': {'a': b'alpha', 'b': b'beta'},
 
             'carrot': b'orange',
+
+            'Hg': b'mercury',
         }
 
         with tempfile.TemporaryDirectory() as read_from_dir:
@@ -503,6 +507,82 @@ class TestConfirmOverwriteTree(unittest.TestCase):
 ≠ data
 
 ''')
+
+
+class TestOverwriteTree(unittest.TestCase):
+
+    def test_no_changes(self):
+        for tree in (
+                {},
+                {
+                    'fruit': {
+                        'apple': b'different colors',
+                        'banana': b'yellow',
+                        'tomato': b'red',
+                    },
+                    'math': b'theorem',
+                },
+                ):
+            with tempfile.TemporaryDirectory() as a:
+                create_files(tree, a)
+                hashes = file_ops.hash_file_tree(a)
+                file_ops.write_meta_data({
+                    'id': 'A', 'version_vector': {}, 'file_hashes': {},
+                }, os.path.join(a, file_ops.META_FILE))
+
+                with tempfile.TemporaryDirectory() as b:
+                    create_files(tree, b)
+                    file_ops.write_meta_data({
+                        'id': 'B', 'version_vector': {}, 'file_hashes': {},
+                    }, os.path.join(b, file_ops.META_FILE))
+
+                    file_ops.overwrite_tree(
+                        read_from_ts=file_ops.read_tree_status(a),
+                        write_to_ts=file_ops.read_tree_status(b))
+
+                    for p in a, b:
+                        self.assertEqual(file_ops.hash_file_tree(p), hashes)
+                    del p
+
+    def test_changes(self):
+        read_from_tree = {
+            'data': b'alternative',
+            'glass': {'watch': b'face', 'window': b'pane'},
+            'letter': b'private',
+
+            'tomato': b'red',
+
+            'Hg': b'mercury',
+        }
+
+        write_to_tree = {
+            'data': b'original',
+            'glass': b'water',
+            'letter': {'a': b'alpha', 'b': b'beta'},
+
+            'carrot': b'orange',
+
+            'Hg': b'mercury',
+        }
+
+        with tempfile.TemporaryDirectory() as read_from_dir:
+            create_files(read_from_tree, read_from_dir)
+            hashes = file_ops.hash_file_tree(read_from_dir)
+            file_ops.write_meta_data({
+                'id': 'Pen', 'version_vector': {}, 'file_hashes': {},
+            }, os.path.join(read_from_dir, file_ops.META_FILE))
+            with tempfile.TemporaryDirectory() as write_to_dir:
+                create_files(write_to_tree, write_to_dir)
+                file_ops.write_meta_data({
+                    'id': 'Paper', 'version_vector': {}, 'file_hashes': {},
+                }, os.path.join(write_to_dir, file_ops.META_FILE))
+
+                file_ops.overwrite_tree(
+                        read_from_ts=file_ops.read_tree_status(read_from_dir),
+                        write_to_ts=file_ops.read_tree_status(write_to_dir))
+                for p in read_from_dir, write_to_dir:
+                    self.assertEqual(file_ops.hash_file_tree(p), hashes)
+                del p
 
 
 class TestSyncFileTrees(unittest.TestCase):
