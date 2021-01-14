@@ -17,3 +17,44 @@ Any empty directory in the file tree is an error.
 ./main.py --help
 ./main.py init --help
 ./main.py sync --help
+
+
+§ New tree metadata
+
+Initializing a new tree with name ‘MyTree’ writes the metadata:
+{
+  "id": "MyTree",
+  "version_vector": {},
+  "file_hashes": {}
+}
+
+
+§ File Hashes
+
+The metadata stores {"path/to/file": "hash of content", …}.
+
+
+§ Version Vectors
+
+A version vector is a map from tree IDs (strings) to counters (integers).
+In principle, when a tree changes, its counter is incremented (or added as 1).
+
+X < Y ⇔ X ≠ Y and each ID in X is present in Y with an equal or higher counter.
+In principle, X is before Y and can be replaced by Y and Y's file tree.
+
+{}		< {A:1}
+{A:1}		≮ {A:1}
+{A:1}		< {A:2, B:3}
+{A:1, B:2}	≮ {B:3}
+{A:1, B:2}	≮ {A:3, B:1}
+{A:1, B:2}	< {A:1, B:3}
+
+X ⊔ Y (join) has all IDs in X and Y.
+An ID's counter is the maximum of its counters in X and Y
+if it is present in both,
+else its counter from X or Y where it is present.
+In principle, synchronizing version vectors X and Y results in X ⊔ Y.
+
+{A:1} ⊔ {A:2}	= {A:2}
+{A:1} ⊔ {B:2}	= {A:1, B:2}
+{A:1, B:4, C:2, D:6} ⊔ {B:3, C:2, D:7, E:9} = {A:1, B:4, C:2, D:7, E:9}

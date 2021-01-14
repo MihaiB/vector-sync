@@ -1,5 +1,7 @@
 def check(vv):
     """
+    Raise an exception if vv is not a version vector.
+
     >>> check({'a'})
     Traceback (most recent call last):
     ValueError: version vector is not dict
@@ -53,6 +55,14 @@ def join(a, b):
     >>> sorted(join({'A': 1, 'B': 4, 'C': 2, 'D': 6},
     ...                     {'B': 3, 'C': 2, 'D': 7, 'E': 9}).items())
     [('A', 1), ('B', 4), ('C', 2), ('D', 7), ('E', 9)]
+
+    >>> in_a = {'A': 1}, in_b = {'B': 1}
+    >>> out_j = join(in_a, in_b)
+    >>> out_j is in_a
+    False
+    >>> out_j is in_b
+    False
+    >>> del in_a, in_b, out_j
     """
     for vv in (a, b):
         check(vv)
@@ -69,6 +79,8 @@ def join(a, b):
 
 def advance(key, vv):
     """
+    Return a new version vector with key's counter incremented or 1 if absent.
+
     >>> sorted(advance('q', {}).items())
     [('q', 1)]
     >>> sorted(advance('y', {'x': 2, 'y': 17}).items())
@@ -77,6 +89,7 @@ def advance(key, vv):
     >>> in_v = {'x': 4}
     >>> advance('y', in_v) is in_v
     False
+    >>> del in_v
     """
     check(vv)
     result = dict(vv)
