@@ -37,7 +37,8 @@ The metadata stores {"path/to/file": "hash of content", …}.
 § Version Vectors
 
 A version vector is a map from tree IDs (strings) to counters (integers).
-In principle, when a tree changes, its counter is incremented (or added as 1).
+In principle, when a tree changes, its counter is incremented if present,
+else added as 1.
 
 X < Y ⇔ X ≠ Y and each ID in X is present in Y with an equal or higher counter.
 In principle, X is before Y and can be replaced by Y and Y's file tree.
