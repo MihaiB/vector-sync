@@ -21,20 +21,6 @@ def copy_down(src_file, dest_file):
     shutil.copyfile(src_file, dest_file)
 
 
-def init_file_tree(*, dirpath, tree_id):
-    filepath = os.path.join(dirpath, META_FILE)
-    # error out if the file already exists
-    with open(filepath, 'x', encoding='utf-8') as f:
-        pass
-    md = {
-        'id': tree_id,
-        'version_vector': {},
-        'file_hashes': {},
-    }
-    write_meta_data(md, filepath)
-    print(f'Initialized {json.dumps(tree_id)} in {json.dumps(dirpath)}.')
-
-
 def check_tree_status(ts):
     """
     >>> check_tree_status([])
