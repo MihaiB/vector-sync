@@ -1,25 +1,3 @@
-Synchronize file trees using version vectors.
-
-
-A file tree is a directory but the term makes it explicit that we refer to
-its entire content, including subdirectories.
-
-To recover from losing data, or to read and modify the data in multiple places,
-make multiple file trees and synchronize them.
-
-To detect which tree should replace the other,
-or that both have changed and the user must reconcile them,
-the program stores metadata in the file .vector-sync in the tree's root.
-The leading dot (.) is a Linux convention for such files.
-Any other .vector-sync file or directory is an error.
-Any empty directory is an error.
-
-
-§ Run
-
-./main.py --help
-./main.py init --help
-./main.py sync --help
 
 
 § New tree metadata
