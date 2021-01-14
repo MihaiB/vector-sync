@@ -1,24 +1,3 @@
-import shutil
-
-
-def delete_up(filepath):
-    """Delete the file and all empty parent directories."""
-    path = os.path.realpath(filepath)
-    del filepath
-
-    os.remove(path)
-    # Because ‘path’ is an absolute not a relative path
-    # ‘parent’ won't be the empty string.
-    parent = os.path.dirname(path)
-    if not os.listdir(parent):
-        os.removedirs(parent)
-
-
-def copy_down(src_file, dest_file):
-    """Copy src_file to dest_file creating dest_file's parent if absent."""
-    dest_file = os.path.realpath(dest_file)
-    os.makedirs(os.path.dirname(dest_file), exist_ok=True)
-    shutil.copyfile(src_file, dest_file)
 
 
 def check_tree_status(ts):
