@@ -1,5 +1,7 @@
+import contextlib
 import file_ops
 import hashlib
+import io
 import json
 import os, os.path
 import tempfile
@@ -199,9 +201,9 @@ class TestInitFileTree(unittest.TestCase):
 
     def test_dir_does_not_exist(self):
         with tempfile.TemporaryDirectory() as d:
-            bad_dirpath = os.path.join(d, 'a')
+            bad_treepath = os.path.join(d, 'a')
             with self.assertRaises(FileNotFoundError):
-                file_ops.init_file_tree(dirpath=bad_dirpath, tree_id='A')
+                file_ops.init_file_tree(treepath=bad_treepath, tree_id='A')
 
     def test_meta_file_exists(self):
         with tempfile.TemporaryDirectory() as d:
@@ -209,7 +211,7 @@ class TestInitFileTree(unittest.TestCase):
             with open(meta_file_path, 'x', encoding='utf-8') as f:
                 pass
             with self.assertRaises(FileExistsError):
-                file_ops.init_file_tree(dirpath=d, tree_id='My Tree')
+                file_ops.init_file_tree(treepath=d, tree_id='My Tree')
 
     def test_init_file_tree(self):
         with tempfile.TemporaryDirectory() as d:
@@ -217,7 +219,7 @@ class TestInitFileTree(unittest.TestCase):
                 f.write('chapter')
             stdout = io.StringIO()
             with contextlib.redirect_stdout(stdout):
-                file_ops.init_file_tree(dirpath=d, tree_id='Main Library')
+                file_ops.init_file_tree(treepath=d, tree_id='Main Library')
 
             got = file_ops.read_meta_data(os.path.join(d, file_ops.META_FILE))
             want = {
