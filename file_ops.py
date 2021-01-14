@@ -128,3 +128,20 @@ def read_meta_data(filepath):
         md = json.load(f)
     check_meta_data(md)
     return md
+
+
+def init_file_tree(*, treepath, tree_id):
+    filepath = os.path.join(treepath, META_FILE)
+    # error out if the file already exists
+    with open(filepath, 'x', encoding='utf-8') as f:
+        pass
+
+    md = {
+        'id': tree_id,
+        'version_vector': {},
+        'file_hashes': {},
+    }
+    check_meta_data(md)
+    write_meta_data(md, filepath)
+
+    print(f'Initialized {json.dumps(tree_id)} in {json.dumps(treepath)}.')
