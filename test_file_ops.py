@@ -27,7 +27,15 @@ def create_files(tree, root_path):
     Keys are elements in the directory.
     If a value is a bytes object a file is created with that content.
     Else a directory is created. The value is the tree for that directory.
+
+    >>> with tempfile.TemporaryDirectory() as d:
+    ...     create_files([], d)
+    Traceback (most recent call last):
+    ValueError: create_files tree is not dict
     """
+    if type(tree) is not dict:
+        raise ValueError('create_files tree is not dict')
+
     for name, value in tree.items():
         path = os.path.join(root_path, name)
         if isinstance(value, bytes):
