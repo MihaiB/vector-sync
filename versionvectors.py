@@ -56,7 +56,7 @@ def join(a, b):
     ...                     {'B': 3, 'C': 2, 'D': 7, 'E': 9}).items())
     [('A', 1), ('B', 4), ('C', 2), ('D', 7), ('E', 9)]
 
-    >>> in_a = {'A': 1}, in_b = {'B': 1}
+    >>> in_a, in_b = {'A': 1}, {'B': 1}
     >>> out_j = join(in_a, in_b)
     >>> out_j is in_a
     False
