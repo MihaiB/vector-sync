@@ -462,3 +462,49 @@ class TestEnsureMetaData(unittest.TestCase):
                 get_new_md()['file_hashes'],
                 get_ts()))
             self.assertEqual(file_ops.read_meta_data(md_path), get_new_md())
+
+
+class TestFormatTreeChange(unittest.TestCase):
+
+    def test_no_change(self):
+        for fh in {}, {'a/b/c': 'hash', 'y/z': 'some hash'}:
+            self.assertEqual('', file_ops.format_tree_change(fh, fh))
+
+    def test_change(self):
+        a = {
+            'Hg': hash_bytes(b'mercury'),
+            'carrot': hash_bytes(b'orange'),
+            'data': hash_bytes(b'original'),
+            'glass': hash_bytes(b'water'),
+            'letter/a': hash_bytes(b'alpha'),
+            'letter/b': hash_bytes(b'beta'),
+            'new\nline': hash_bytes(b'\r\n'),
+        }
+
+        z = {
+            'Hg': hash_bytes(b'mercury'),
+            'data': hash_bytes(b'alternative'),
+            'glass/watch': hash_bytes(b'face'),
+            'glass/window': hash_bytes(b'pane'),
+            'letter': hash_bytes(b'private'),
+            'new\nline': hash_bytes(b'\n'),
+            'tomato': hash_bytes(b'red'),
+        }
+
+        want = '''• Add:
++ "glass/watch"
++ "glass/window"
++ "letter"
++ "tomato"
+
+• Delete:
+- "carrot"
+- "glass"
+- "letter/a"
+- "letter/b"
+
+• Overwrite:
+≠ "data"
+≠ "new\\nline"'''
+
+        self.assertEqual(file_ops.format_tree_change(a, z), want)
