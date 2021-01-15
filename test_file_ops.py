@@ -621,12 +621,12 @@ class TestEnsureFiles(unittest.TestCase):
                     'id': 'Paper', 'version_vector': {}, 'file_hashes': {},
                 }, os.path.join(write_to_dir, file_ops.META_FILE))
 
+                read_from_ts = file_ops.read_tree_status(read_from_dir)
+                write_to_ts = file_ops.read_tree_status(write_to_dir)
                 stdout = io.StringIO()
                 with contextlib.redirect_stdout(stdout):
                     with unittest.mock.patch('builtins.input', spec_set=True,
                             return_value='y') as input_p:
-                        read_from_ts = file_ops.read_tree_status(read_from_dir)
-                        write_to_ts = file_ops.read_tree_status(write_to_dir)
                         self.assertTrue(file_ops.ensure_files(
                             read_from_ts=read_from_ts,
                             write_to_ts=write_to_ts))
