@@ -239,7 +239,7 @@ def read_tree_status(path):
 
 
 def confirm(prompt):
-    """Asks ‘prompt [y/N]’ and returns bool."""
+    """Asks ‘prompt [y/N] ’ and returns bool."""
     answer = input(prompt + ' [y/N] ')
     return answer.lower() == 'y'
 
