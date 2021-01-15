@@ -652,3 +652,166 @@ class TestEnsureFiles(unittest.TestCase):
                 for p in read_from_dir, write_to_dir:
                     self.assertEqual(file_ops.hash_file_tree(p), read_hashes)
                 del p
+
+
+class TestSyncFileTrees(unittest.TestCase):
+
+    def test_already_synchronized(self):
+        tree = {
+            'article': b'news\n',
+            'front_page': {
+                'interview': b'dialogue',
+            },
+        }
+        file_hashes = {
+            'article': hash_bytes(tree['article']),
+            'front_page/interview': hash_bytes(tree['front_page']['interview']),
+        }
+        vv = {'C': 13}
+
+        with tempfile.TemporaryDirectory() as a:
+            create_files(tree, a)
+            file_ops.write_meta_data({
+                'id': 'Apricot',
+                'version_vector': vv,
+                'file_hashes': file_hashes,
+            }, os.path.join(a, file_ops.META_FILE))
+
+            with tempfile.TemporaryDirectory() as b:
+                create_files(tree, b)
+                file_ops.write_meta_data({
+                    'id': 'Berry',
+                    'version_vector': vv,
+                    'file_hashes': file_hashes,
+                }, os.path.join(b, file_ops.META_FILE))
+
+                stdout = io.StringIO()
+                with contextlib.redirect_stdout(stdout):
+                    file_ops.sync_file_trees(a, b)
+                self.assertEqual(stdout.getvalue(),
+                        '"Apricot" and "Berry" are already synchronized.\n')
+
+                self.assertEqual(file_ops.read_tree_status(a), {
+                    'path': a,
+                    'id': 'Apricot',
+                    'pre_vv': vv,
+                    'known_hashes': file_hashes,
+                    'disk_hashes': file_hashes,
+                    'post_vv': vv,
+                })
+                self.assertEqual(file_ops.read_tree_status(b), {
+                    'path': b,
+                    'id': 'Berry',
+                    'pre_vv': vv,
+                    'known_hashes': file_hashes,
+                    'disk_hashes': file_hashes,
+                    'post_vv': vv,
+                })
+
+    def test_same_files_different_metadata(self):
+        tree = {
+            'article': b'news\n',
+            'front_page': {
+                'interview': b'dialogue',
+            },
+        }
+        file_hashes = {
+            'article': hash_bytes(tree['article']),
+            'front_page/interview': hash_bytes(tree['front_page']['interview']),
+        }
+
+        with tempfile.TemporaryDirectory() as a:
+            create_files(tree, a)
+            file_ops.write_meta_data({
+                'id': 'Apricot',
+                'version_vector': {'Grapes': 5},
+                'file_hashes': file_hashes,
+            }, os.path.join(a, file_ops.META_FILE))
+
+            with tempfile.TemporaryDirectory() as b:
+                create_files(tree, b)
+                file_ops.write_meta_data({
+                    'id': 'Berry',
+                    'version_vector': {'Tomatoes': 2},
+                    'file_hashes': {'article': hash_bytes(tree['article'])},
+                }, os.path.join(b, file_ops.META_FILE))
+
+                stdout = io.StringIO()
+                with contextlib.redirect_stdout(stdout):
+                    file_ops.sync_file_trees(a, b)
+                self.assertEqual(stdout.getvalue(),
+                        'Synchronized "Apricot" and "Berry".\n')
+
+                vv_join = {'Grapes': 5, 'Tomatoes': 2, 'Berry': 1}
+
+                self.assertEqual(file_ops.read_tree_status(a), {
+                    'path': a,
+                    'id': 'Apricot',
+                    'pre_vv': vv_join,
+                    'known_hashes': file_hashes,
+                    'disk_hashes': file_hashes,
+                    'post_vv': vv_join,
+                })
+                self.assertEqual(file_ops.read_tree_status(b), {
+                    'path': b,
+                    'id': 'Berry',
+                    'pre_vv': vv_join,
+                    'known_hashes': file_hashes,
+                    'disk_hashes': file_hashes,
+                    'post_vv': vv_join,
+                })
+
+    def test_user_cancels(self):
+        old_tree = {'yesterday': b'past'}
+        old_hashes = {'yesterday': hash_bytes(old_tree['yesterday'])}
+        new_tree = {'today': b'now'}
+        new_hashes = {'today': hash_bytes(new_tree['today'])}
+        vv = {'Ancient': 2, 'Modern': 3, 'Other': 7}
+
+        with tempfile.TemporaryDirectory() as old_dir:
+            create_files(old_tree, old_dir)
+            file_ops.write_meta_data({
+                'id': 'Ancient',
+                'version_vector': vv,
+                'file_hashes': old_hashes,
+            }, os.path.join(old_dir, file_ops.META_FILE))
+
+            with tempfile.TemporaryDirectory() as new_dir:
+                create_files(new_tree, new_dir)
+                file_ops.write_meta_data({
+                    'id': 'Modern',
+                    'version_vector': vv,
+                    'file_hashes': old_hashes,
+                }, os.path.join(new_dir, file_ops.META_FILE))
+
+                def check():
+                    self.assertEqual(file_ops.read_tree_status(old_dir), {
+                        'path': old_dir,
+                        'id': 'Ancient',
+                        'pre_vv': vv,
+                        'known_hashes': old_hashes,
+                        'disk_hashes': old_hashes,
+                        'post_vv': vv,
+                    })
+                    self.assertEqual(file_ops.read_tree_status(new_dir), {
+                        'path': new_dir,
+                        'id': 'Modern',
+                        'pre_vv': vv,
+                        'known_hashes': old_hashes,
+                        'disk_hashes': new_hashes,
+                        'post_vv': versionvectors.advance('Modern', vv),
+                    })
+
+                check()
+
+                with unittest.mock.patch('builtins.input', spec_set=True,
+                        return_value='n'):
+                    with contextlib.redirect_stdout(io.StringIO()):
+                        with self.assertRaisesRegex(Exception,
+                                '^canceled by the user$'):
+                            file_ops.sync_file_trees(old_dir, new_dir)
+                        check()
+                        with self.assertRaisesRegex(Exception,
+                                '^canceled by the user$'):
+                            file_ops.sync_file_trees(new_dir, old_dir)
+                        check()
