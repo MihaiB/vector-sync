@@ -6,6 +6,7 @@ import json
 import os, os.path
 import tempfile
 import unittest
+import versionvectors
 
 
 def hash_bytes(b):
@@ -330,3 +331,67 @@ class TestCopyDown(unittest.TestCase):
 
             with open(os.path.realpath(dest_path), encoding='utf-8') as f:
                 self.assertEqual(f.read(), msg)
+
+
+class TestReadTreeStatus(unittest.TestCase):
+
+    def test_missing_dir(self):
+        with tempfile.TemporaryDirectory() as d:
+            with self.assertRaises(FileNotFoundError):
+                file_ops.read_tree_status(os.path.join(d, 'subdir'))
+
+    def test_missing_meta_file(self):
+        with tempfile.TemporaryDirectory() as d:
+            with self.assertRaises(FileNotFoundError):
+                file_ops.read_tree_status(d)
+
+    def test_tree_unchanged(self):
+        tree = {'kitchen': {'sink': b'wash fruit', 'fridge': b'store fruit'}}
+        with tempfile.TemporaryDirectory() as d:
+            create_files(tree, d)
+            md = {
+                'id': 'notepad',
+                'version_vector': {'cabinet': 7},
+                'file_hashes': {
+                    'kitchen/sink': hash_bytes(tree['kitchen']['sink']),
+                    'kitchen/fridge': hash_bytes(tree['kitchen']['fridge']),
+                },
+            }
+            file_ops.write_meta_data(md, os.path.join(d, file_ops.META_FILE))
+
+            self.assertEqual(file_ops.read_tree_status(d), {
+                'path': d,
+                'id': md['id'],
+                'pre_vv': md['version_vector'],
+                'known_hashes': md['file_hashes'],
+                'disk_hashes': md['file_hashes'],
+                'post_vv': md['version_vector'],
+            })
+
+    def test_tree_changed(self):
+        tree = {'kitchen': {'sink': b'wash fruit', 'fridge': b'store fruit'}}
+        with tempfile.TemporaryDirectory() as d:
+            create_files(tree, d)
+            md = {
+                'id': 'notepad',
+                'version_vector': {'cabinet': 7},
+                'file_hashes': {
+                    'kitchen/sink': hash_bytes(tree['kitchen']['sink']),
+                    'kitchen/fridge': hash_bytes(tree['kitchen']['fridge']),
+                    'cellar/champagne': hash_bytes(b'sparkling'),
+                },
+            }
+            file_ops.write_meta_data(md, os.path.join(d, file_ops.META_FILE))
+
+            self.assertEqual(file_ops.read_tree_status(d), {
+                'path': d,
+                'id': md['id'],
+                'pre_vv': md['version_vector'],
+                'known_hashes': md['file_hashes'],
+                'disk_hashes': {
+                    'kitchen/sink': hash_bytes(tree['kitchen']['sink']),
+                    'kitchen/fridge': hash_bytes(tree['kitchen']['fridge']),
+                },
+                'post_vv': versionvectors.advance(md['id'],
+                    md['version_vector']),
+            })
