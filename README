@@ -59,3 +59,18 @@ In principle, synchronizing version vectors X and Y results in X ⊔ Y.
 {A:1} ⊔ {A:2}	= {A:2}
 {A:1} ⊔ {B:2}	= {A:1, B:2}
 {A:1, B:4, C:2, D:6} ⊔ {B:3, C:2, D:7, E:9} = {A:1, B:4, C:2, D:7, E:9}
+
+
+§ Synchronizing two file trees, A and B
+
+If a tree differs from its metadata,
+increment the counter for its ID in its version vector (set it to 1 if absent).
+This is calculated in memory, not written to disk.
+
+If the trees are identical, do nothing.
+Else if Va < Vb, replace tree A with B.
+Else if Vb < Va, replace tree B with A.
+Else stop: the user must make the trees identical then run the sync again.
+
+Now the file trees are identical.
+Record the file tree and Va ⊔ Vb in the metadata of A and B.
