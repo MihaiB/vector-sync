@@ -317,3 +317,39 @@ def ensure_files(*, read_from_ts, write_to_ts):
                     os.path.join(write_to_ts['path'], p))
 
     return True
+
+
+def sync_file_trees(path_a, path_b):
+    a, b = (read_tree_status(p) for p in (path_a, path_b))
+    del path_a, path_b
+
+    if a['disk_hashes'] == b['disk_hashes']:
+        read_from_ts = a
+    elif versionvectors.less(a['post_vv'], b['post_vv']):
+        read_from_ts = b
+    elif versionvectors.less(b['post_vv'], a['post_vv']):
+        read_from_ts = a
+    else:
+        raise Exception(f'{json.dumps(a["id"])} and {json.dumps(b["id"])}'
+                + ' have diverged, make their files identical'
+                + ' then run the sync again.')
+
+    written = False
+
+    for ts in a, b:
+        if ensure_files(read_from_ts=read_from_ts, write_to_ts=ts):
+            written=True
+    del ts
+
+    vv_join = versionvectors.join(a['post_vv'], b['post_vv'])
+    for ts in a, b:
+        if ensure_meta_data(vv_join, read_from_ts['disk_hashes'], ts):
+            written=True
+    del ts, vv_join
+
+    if written:
+        print(f'Synchronized {json.dumps(a["id"])} and {json.dumps(b["id"])}.')
+        return
+
+    print(json.dumps(a["id"]), 'and', json.dumps(b["id"]),
+            'are already synchronized.')
