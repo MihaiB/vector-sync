@@ -1,39 +1,3 @@
-class TestOverwriteTree(unittest.TestCase):
-
-    def test_no_changes(self):
-        for tree in (
-                {},
-                {
-                    'fruit': {
-                        'apple': b'different colors',
-                        'banana': b'yellow',
-                        'tomato': b'red',
-                    },
-                    'math': b'theorem',
-                },
-                ):
-            with tempfile.TemporaryDirectory() as a:
-                create_files(tree, a)
-                hashes = file_ops.hash_file_tree(a)
-                file_ops.write_meta_data({
-                    'id': 'A', 'version_vector': {}, 'file_hashes': {},
-                }, os.path.join(a, file_ops.META_FILE))
-
-                with tempfile.TemporaryDirectory() as b:
-                    create_files(tree, b)
-                    file_ops.write_meta_data({
-                        'id': 'B', 'version_vector': {}, 'file_hashes': {},
-                    }, os.path.join(b, file_ops.META_FILE))
-
-                    file_ops.overwrite_tree(
-                        read_from_ts=file_ops.read_tree_status(a),
-                        write_to_ts=file_ops.read_tree_status(b))
-
-                    for p in a, b:
-                        self.assertEqual(file_ops.hash_file_tree(p), hashes)
-                    del p
-
-
 class TestSyncFileTrees(unittest.TestCase):
 
     def test_same_ids(self):
