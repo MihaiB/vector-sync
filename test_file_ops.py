@@ -815,3 +815,221 @@ class TestSyncFileTrees(unittest.TestCase):
                                 '^canceled by the user$'):
                             file_ops.sync_file_trees(new_dir, old_dir)
                         check()
+
+    def test_sync_changes(self):
+        orig_tree = {
+            'Hg': b'mercury',
+            'carrot': b'orange',
+            'data': b'original',
+            'glass': b'water',
+            'letter': {'a': b'alpha', 'b': b'beta'},
+            'new\nline': b'\r\n',
+        }
+        orig_hashes = {
+            'Hg': hash_bytes(b'mercury'),
+            'carrot': hash_bytes(b'orange'),
+            'data': hash_bytes(b'original'),
+            'glass': hash_bytes(b'water'),
+            'letter/a': hash_bytes(b'alpha'),
+            'letter/b': hash_bytes(b'beta'),
+            'new\nline': hash_bytes(b'\r\n'),
+        }
+
+        changed_tree = {
+            'Hg': b'mercury',
+            'data': b'alternative',
+            'glass': {'watch': b'face', 'window': b'pane'},
+            'letter': b'private',
+            'new\nline': b'\n',
+            'tomato': b'red',
+        }
+        changed_hashes = {
+            'Hg': hash_bytes(b'mercury'),
+            'data': hash_bytes(b'alternative'),
+            'glass/watch': hash_bytes(b'face'),
+            'glass/window': hash_bytes(b'pane'),
+            'letter': hash_bytes(b'private'),
+            'new\nline': hash_bytes(b'\n'),
+            'tomato': hash_bytes(b'red'),
+        }
+
+        vv = {'Orig': 2, 'Changed': 4, 'Other': 7}
+
+        def run(flip_args):
+            with tempfile.TemporaryDirectory() as orig_dir, \
+                    tempfile.TemporaryDirectory() as changed_dir:
+                create_files(orig_tree, orig_dir)
+                file_ops.write_meta_data({
+                    'id': 'Orig',
+                    'version_vector': vv,
+                    'file_hashes': orig_hashes,
+                }, os.path.join(orig_dir, file_ops.META_FILE))
+
+                create_files(changed_tree, changed_dir)
+                file_ops.write_meta_data({
+                    'id': 'Changed',
+                    'version_vector': vv,
+                    'file_hashes': orig_hashes,
+                }, os.path.join(changed_dir, file_ops.META_FILE))
+
+                args = (orig_dir, changed_dir)
+                synchronized_msg = 'Synchronized "Orig" and "Changed".'
+                if flip_args:
+                    args = reversed(args)
+                    synchronized_msg = 'Synchronized "Changed" and "Orig".'
+
+                stdout = io.StringIO()
+                with contextlib.redirect_stdout(stdout):
+                    with unittest.mock.patch('builtins.input', spec_set=True,
+                            return_value='y') as input_p:
+                        file_ops.sync_file_trees(*args)
+                        input_p.assert_called_once_with(
+                                'Change "Orig"? [y/N] ')
+                self.assertEqual(stdout.getvalue(), f'''• Add:
++ "glass/watch"
++ "glass/window"
++ "letter"
++ "tomato"
+
+• Delete:
+- "carrot"
+- "glass"
+- "letter/a"
+- "letter/b"
+
+• Overwrite:
+≠ "data"
+≠ "new\\nline"
+
+{synchronized_msg}
+''')
+                final_vv = versionvectors.advance('Changed', vv)
+                self.assertEqual(file_ops.read_tree_status(orig_dir), {
+                    'path': orig_dir,
+                    'id': 'Orig',
+                    'pre_vv': final_vv,
+                    'known_hashes': changed_hashes,
+                    'disk_hashes': changed_hashes,
+                    'post_vv': final_vv,
+                })
+                self.assertEqual(file_ops.read_tree_status(changed_dir), {
+                    'path': changed_dir,
+                    'id': 'Changed',
+                    'pre_vv': final_vv,
+                    'known_hashes': changed_hashes,
+                    'disk_hashes': changed_hashes,
+                    'post_vv': final_vv,
+                })
+
+        for flip_args in False, True:
+            run(flip_args)
+        del flip_args
+
+    def test_sync_new_to_old(self):
+        old_tree = {
+            'Hg': b'mercury',
+            'carrot': b'orange',
+            'data': b'original',
+            'glass': b'water',
+            'letter': {'a': b'alpha', 'b': b'beta'},
+            'new\nline': b'\r\n',
+        }
+        old_hashes = {
+            'Hg': hash_bytes(b'mercury'),
+            'carrot': hash_bytes(b'orange'),
+            'data': hash_bytes(b'original'),
+            'glass': hash_bytes(b'water'),
+            'letter/a': hash_bytes(b'alpha'),
+            'letter/b': hash_bytes(b'beta'),
+            'new\nline': hash_bytes(b'\r\n'),
+        }
+
+        new_tree = {
+            'Hg': b'mercury',
+            'data': b'alternative',
+            'glass': {'watch': b'face', 'window': b'pane'},
+            'letter': b'private',
+            'new\nline': b'\n',
+            'tomato': b'red',
+        }
+        new_hashes = {
+            'Hg': hash_bytes(b'mercury'),
+            'data': hash_bytes(b'alternative'),
+            'glass/watch': hash_bytes(b'face'),
+            'glass/window': hash_bytes(b'pane'),
+            'letter': hash_bytes(b'private'),
+            'new\nline': hash_bytes(b'\n'),
+            'tomato': hash_bytes(b'red'),
+        }
+
+        old_vv = {'Alpha': 3, 'Delta': 7}
+        new_vv = {'Alpha': 3, 'Delta': 9}
+
+        def run(flip_args):
+            with tempfile.TemporaryDirectory() as old_dir, \
+                    tempfile.TemporaryDirectory() as new_dir:
+                create_files(old_tree, old_dir)
+                file_ops.write_meta_data({
+                    'id': 'History',
+                    'version_vector': old_vv,
+                    'file_hashes': old_hashes,
+                }, os.path.join(old_dir, file_ops.META_FILE))
+
+                create_files(new_tree, new_dir)
+                file_ops.write_meta_data({
+                    'id': 'Future',
+                    'version_vector': new_vv,
+                    'file_hashes': new_hashes,
+                }, os.path.join(new_dir, file_ops.META_FILE))
+
+                args = (old_dir, new_dir)
+                synchronized_msg = 'Synchronized "History" and "Future".'
+                if flip_args:
+                    args = reversed(args)
+                    synchronized_msg = 'Synchronized "Future" and "History".'
+
+                stdout = io.StringIO()
+                with contextlib.redirect_stdout(stdout):
+                    with unittest.mock.patch('builtins.input', spec_set=True,
+                            return_value='y') as input_p:
+                        file_ops.sync_file_trees(*args)
+                        input_p.assert_called_once_with(
+                                'Change "History"? [y/N] ')
+                self.assertEqual(stdout.getvalue(), f'''• Add:
++ "glass/watch"
++ "glass/window"
++ "letter"
++ "tomato"
+
+• Delete:
+- "carrot"
+- "glass"
+- "letter/a"
+- "letter/b"
+
+• Overwrite:
+≠ "data"
+≠ "new\\nline"
+
+{synchronized_msg}
+''')
+                self.assertEqual(file_ops.read_tree_status(old_dir), {
+                    'path': old_dir,
+                    'id': 'History',
+                    'pre_vv': new_vv,
+                    'known_hashes': new_hashes,
+                    'disk_hashes': new_hashes,
+                    'post_vv': new_vv,
+                })
+                self.assertEqual(file_ops.read_tree_status(new_dir), {
+                    'path': new_dir,
+                    'id': 'Future',
+                    'pre_vv': new_vv,
+                    'known_hashes': new_hashes,
+                    'disk_hashes': new_hashes,
+                    'post_vv': new_vv,
+                })
+
+        for flip_args in False, True:
+            run(flip_args)
+        del flip_args
