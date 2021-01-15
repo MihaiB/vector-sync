@@ -522,6 +522,7 @@ class TestEnsureFiles(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as a:
             create_files(tree, a)
+            hashes = file_ops.hash_file_tree(a)
             file_ops.write_meta_data({
                 'id': 'A', 'version_vector': {}, 'file_hashes': {},
             }, os.path.join(a, file_ops.META_FILE))
@@ -539,6 +540,10 @@ class TestEnsureFiles(unittest.TestCase):
                         write_to_ts=file_ops.read_tree_status(b),
                     ))
                     input_p.assert_not_called()
+
+                for p in a, b:
+                    self.assertEqual(file_ops.hash_file_tree(p), hashes)
+                del p
 
     @unittest.mock.patch('sys.stdout', spec_set=True)   # silence test output
     def test_cancel_changes(self, stdout):
