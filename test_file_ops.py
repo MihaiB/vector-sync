@@ -508,3 +508,125 @@ class TestFormatTreeChange(unittest.TestCase):
 ≠ "new\\nline"'''
 
         self.assertEqual(file_ops.format_tree_change(a, z), want)
+
+
+class TestEnsureFiles(unittest.TestCase):
+
+    def test_no_changes(self):
+        tree = {
+            'fruit': {
+                'apple': b'different colors',
+                'tomato': b'red',
+            },
+        }
+
+        with tempfile.TemporaryDirectory() as a:
+            create_files(tree, a)
+            file_ops.write_meta_data({
+                'id': 'A', 'version_vector': {}, 'file_hashes': {},
+            }, os.path.join(a, file_ops.META_FILE))
+
+            with tempfile.TemporaryDirectory() as b:
+                create_files(tree, b)
+                file_ops.write_meta_data({
+                    'id': 'B', 'version_vector': {}, 'file_hashes': {},
+                }, os.path.join(b, file_ops.META_FILE))
+
+                with unittest.mock.patch('builtins.input',
+                        spec_set=True) as input_p:
+                    self.assertFalse(file_ops.ensure_files(
+                        read_from_ts=file_ops.read_tree_status(a),
+                        write_to_ts=file_ops.read_tree_status(b),
+                    ))
+                    input_p.assert_not_called()
+
+    @unittest.mock.patch('sys.stdout', spec_set=True)   # silence test output
+    def test_cancel_changes(self, stdout):
+        read_from_tree = {
+            'Hg': b'mercury',
+            'data': b'alternative',
+            'glass': {'watch': b'face', 'window': b'pane'},
+            'letter': b'private',
+            'tomato': b'red',
+        }
+
+        write_to_tree = {
+            'Hg': b'mercury',
+            'carrot': b'orange',
+            'data': b'original',
+            'glass': b'water',
+            'letter': {'a': b'alpha', 'b': b'beta'},
+        }
+
+        with tempfile.TemporaryDirectory() as read_from_dir:
+            create_files(read_from_tree, read_from_dir)
+            read_hashes = file_ops.hash_file_tree(read_from_dir)
+            file_ops.write_meta_data({
+                'id': 'Pen', 'version_vector': {}, 'file_hashes': {},
+            }, os.path.join(read_from_dir, file_ops.META_FILE))
+            with tempfile.TemporaryDirectory() as write_to_dir:
+                create_files(write_to_tree, write_to_dir)
+                write_hashes = file_ops.hash_file_tree(write_to_dir)
+                file_ops.write_meta_data({
+                    'id': 'Paper', 'version_vector': {}, 'file_hashes': {},
+                }, os.path.join(write_to_dir, file_ops.META_FILE))
+
+                with unittest.mock.patch('builtins.input', spec_set=True,
+                        return_value='n') as input_p:
+                    with self.assertRaisesRegex(Exception,
+                            '^canceled by the user$'):
+                        read_from_ts = file_ops.read_tree_status(read_from_dir)
+                        write_to_ts = file_ops.read_tree_status(write_to_dir)
+                        file_ops.ensure_files(read_from_ts=read_from_ts,
+                                write_to_ts=write_to_ts)
+                    input_p.assert_called_once_with('Change "Paper"? [y/N] ')
+
+                self.assertEqual(file_ops.hash_file_tree(read_from_dir),
+                        read_hashes)
+                self.assertEqual(file_ops.hash_file_tree(write_to_dir),
+                        write_hashes)
+
+    @unittest.mock.patch('sys.stdout', spec_set=True)   # silence test output
+    def test_approve_changes(self, stdout):
+        read_from_tree = {
+            'Hg': b'mercury',
+            'data': b'alternative',
+            'glass': {'watch': b'face', 'window': b'pane'},
+            'letter': b'private',
+            'tomato': b'red',
+        }
+
+        write_to_tree = {
+            'Hg': b'mercury',
+            'carrot': b'orange',
+            'data': b'original',
+            'glass': b'water',
+            'letter': {'a': b'alpha', 'b': b'beta'},
+        }
+
+        with tempfile.TemporaryDirectory() as read_from_dir:
+            create_files(read_from_tree, read_from_dir)
+            read_hashes = file_ops.hash_file_tree(read_from_dir)
+            file_ops.write_meta_data({
+                'id': 'Pen', 'version_vector': {}, 'file_hashes': {},
+            }, os.path.join(read_from_dir, file_ops.META_FILE))
+            with tempfile.TemporaryDirectory() as write_to_dir:
+                create_files(write_to_tree, write_to_dir)
+                write_hashes = file_ops.hash_file_tree(write_to_dir)
+                file_ops.write_meta_data({
+                    'id': 'Paper', 'version_vector': {}, 'file_hashes': {},
+                }, os.path.join(write_to_dir, file_ops.META_FILE))
+
+                with unittest.mock.patch('builtins.input', spec_set=True,
+                        return_value='y') as input_p:
+                    read_from_ts = file_ops.read_tree_status(read_from_dir)
+                    write_to_ts = file_ops.read_tree_status(write_to_dir)
+                    self.assertTrue(file_ops.ensure_files(
+                        read_from_ts=read_from_ts,
+                        write_to_ts=write_to_ts))
+                    input_p.assert_called_once_with(
+                            'Change "Paper"? [y/N] ')
+
+                for p in read_from_dir, write_to_dir:
+                    self.assertEqual(file_ops.hash_file_tree(p), read_hashes)
+                del p

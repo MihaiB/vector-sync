@@ -245,7 +245,7 @@ def confirm(prompt):
 
 
 def ensure_meta_data(version_vector, file_hashes, tree_status):
-    """Returns true if it wrote the meta data, false if it didn't."""
+    """Returns True if it wrote the meta data, False if it didn't."""
     versionvectors.check(version_vector)
     check_file_hashes(file_hashes)
     check_tree_status(tree_status)
@@ -289,3 +289,31 @@ def format_tree_change(a, z):
             lines.append(f'{char} {json.dumps(p)}')
 
     return '\n'.join(lines)
+
+
+def ensure_files(*, read_from_ts, write_to_ts):
+    """Returns True if it made any changes, else False."""
+    for ts in read_from_ts, write_to_ts:
+        check_tree_status(ts)
+    del ts
+
+    r, w = (ts['disk_hashes'] for ts in (read_from_ts, write_to_ts))
+
+    if r == w:
+        return False
+
+    print(format_tree_change(w, r))
+    print()
+    if not confirm(f'Change {json.dumps(write_to_ts["id"])}?'):
+        raise Exception('canceled by the user')
+
+    for p in w:
+        if p not in r:
+            delete_up(os.path.join(write_to_ts['path'], p))
+
+    for p in r:
+        if p not in w or w[p] != r[p]:
+            copy_down(os.path.join(read_from_ts['path'], p),
+                    os.path.join(write_to_ts['path'], p))
+
+    return True
