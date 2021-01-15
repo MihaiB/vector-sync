@@ -266,7 +266,7 @@ def ensure_meta_data(version_vector, file_hashes, tree_status):
 
 
 def format_tree_change(a, z):
-    """Return the change from file hashes a to z as a string."""
+    """Return the change between file hashes ‘a’ and ‘z’ as a string."""
     check_file_hashes(a)
     check_file_hashes(z)
 
