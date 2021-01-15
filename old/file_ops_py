@@ -1,24 +1,5 @@
 
 
-def write_meta_data_if_different(version_vector, file_hashes, tree_status):
-    """Write the meta data if it differs from the one in tree_status."""
-    versionvectors.check(version_vector)
-    check_file_hashes(file_hashes)
-    check_tree_status(tree_status)
-
-    if (version_vector == tree_status['pre_vv']
-            and file_hashes == tree_status['known_hashes']):
-        return
-
-    meta_data = {
-        'id': tree_status['id'],
-        'version_vector': version_vector,
-        'file_hashes': file_hashes,
-    }
-    check_meta_data(meta_data)
-    write_meta_data(meta_data, os.path.join(tree_status['path'], META_FILE))
-
-
 def confirm_overwrite_tree(*, read_from_ts, write_to_ts):
     """Ask the user to confirm if there are changes then return True/False."""
     for ts in read_from_ts, write_to_ts:
