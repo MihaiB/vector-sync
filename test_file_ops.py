@@ -578,10 +578,10 @@ class TestEnsureFiles(unittest.TestCase):
 
                 with unittest.mock.patch('builtins.input', spec_set=True,
                         return_value='n') as input_p:
+                    read_from_ts = file_ops.read_tree_status(read_from_dir)
+                    write_to_ts = file_ops.read_tree_status(write_to_dir)
                     with self.assertRaisesRegex(Exception,
                             '^canceled by the user$'):
-                        read_from_ts = file_ops.read_tree_status(read_from_dir)
-                        write_to_ts = file_ops.read_tree_status(write_to_dir)
                         file_ops.ensure_files(read_from_ts=read_from_ts,
                                 write_to_ts=write_to_ts)
                     input_p.assert_called_once_with('Change "Paper"? [y/N] ')
