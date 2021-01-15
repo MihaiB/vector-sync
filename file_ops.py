@@ -236,3 +236,30 @@ def read_tree_status(path):
     }
     check_tree_status(ts)
     return ts
+
+
+def confirm(prompt):
+    """Asks ‘prompt [y/N] ’ and returns bool."""
+    answer = input(prompt + ' [y/N] ')
+    return answer.lower() == 'y'
+
+
+def ensure_meta_data(version_vector, file_hashes, tree_status):
+    """Returns true if it wrote the meta data, false if it didn't."""
+    versionvectors.check(version_vector)
+    check_file_hashes(file_hashes)
+    check_tree_status(tree_status)
+
+    if (version_vector == tree_status['pre_vv']
+            and file_hashes == tree_status['known_hashes']):
+        return False
+
+    md = {
+            'id': tree_status['id'],
+            'version_vector': version_vector,
+            'file_hashes': file_hashes,
+    }
+    check_meta_data(md)
+
+    write_meta_data(md, os.path.join(tree_status['path'], META_FILE))
+    return True

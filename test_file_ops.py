@@ -5,7 +5,7 @@ import io
 import json
 import os, os.path
 import tempfile
-import unittest
+import unittest, unittest.mock
 import versionvectors
 
 
@@ -395,3 +395,70 @@ class TestReadTreeStatus(unittest.TestCase):
                 'post_vv': versionvectors.advance(md['id'],
                     md['version_vector']),
             })
+
+
+class TestConfirm(unittest.TestCase):
+
+    def test_yes(self):
+        for answer in 'y', 'Y':
+            with unittest.mock.patch('builtins.input', spec_set=True,
+                    return_value=answer) as input_p:
+                self.assertTrue(file_ops.confirm('Tidy up?'))
+                input_p.assert_called_once_with('Tidy up? [y/N] ')
+
+    def test_no(self):
+        for answer in '', 'n', 'N', 'x':
+            with unittest.mock.patch('builtins.input', spec_set=True,
+                    return_value=answer):
+                self.assertFalse(file_ops.confirm('some text'))
+
+
+class TestEnsureMetaData(unittest.TestCase):
+
+    def test_no_change(self):
+        with tempfile.TemporaryDirectory() as d:
+            version_vector = {'A': 17}
+            file_hashes = {'diary': 'hash of entries'}
+            ts = {
+                'path': os.path.join(d, 'non', 'existent'),
+                'id': 'MyTree',
+                'pre_vv': version_vector,
+                'known_hashes': file_hashes,
+                'disk_hashes': {'shopping list': 'hash of food names'},
+                'post_vv': {'B': 3},
+            }
+            self.assertFalse(file_ops.ensure_meta_data(
+                version_vector, file_hashes, ts))
+
+    def test_change(self):
+        with tempfile.TemporaryDirectory() as d:
+            md_path = os.path.join(d, file_ops.META_FILE)
+            def get_old_md():
+                return {
+                    'id': 'MyDir',
+                    'file_hashes': {'diary': 'hash of entries'},
+                    'version_vector': {'A': 2},
+                }
+            file_ops.write_meta_data(get_old_md(), md_path)
+
+            def get_ts():
+                return {
+                    'path': d,
+                    'id': get_old_md()['id'],
+                    'pre_vv': get_old_md()['version_vector'],
+                    'known_hashes': get_old_md()['file_hashes'],
+                    'disk_hashes': {},
+                    'post_vv': {},
+                }
+            def get_new_md():
+                return {
+                    'id': get_old_md()['id'],
+                    'file_hashes': {'documents': 'hash of text'},
+                    'version_vector': {'Z': 12},
+                }
+
+            self.assertTrue(file_ops.ensure_meta_data(
+                get_new_md()['version_vector'],
+                get_new_md()['file_hashes'],
+                get_ts()))
+            self.assertEqual(file_ops.read_meta_data(md_path), get_new_md())
