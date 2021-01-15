@@ -263,3 +263,29 @@ def ensure_meta_data(version_vector, file_hashes, tree_status):
 
     write_meta_data(md, os.path.join(tree_status['path'], META_FILE))
     return True
+
+
+def format_tree_change(a, z):
+    """Return the change between file hashes ‘a’ and ‘z’ as a string."""
+    check_file_hashes(a)
+    check_file_hashes(z)
+
+    add_paths = {p for p in z if p not in a}
+    del_paths = {p for p in a if p not in z}
+    overwrite_paths = {p for p in a if p in z and a[p] != z[p]}
+
+    lines = []
+    for paths, word, char in (
+            (add_paths, 'Add', '+'),
+            (del_paths, 'Delete', '-'),
+            (overwrite_paths, 'Overwrite', '≠'),
+            ):
+        if not paths:
+            continue
+        if lines:
+            lines.append('')
+        lines.append(f'• {word}:')
+        for p in sorted(paths):
+            lines.append(f'{char} {json.dumps(p)}')
+
+    return '\n'.join(lines)
