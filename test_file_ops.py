@@ -586,8 +586,7 @@ class TestEnsureFiles(unittest.TestCase):
                 self.assertEqual(file_ops.hash_file_tree(write_to_dir),
                         write_hashes)
 
-    @unittest.mock.patch('sys.stdout', spec_set=True)   # silence test output
-    def test_approve_changes(self, stdout):
+    def test_approve_changes(self):
         read_from_tree = {
             'Hg': b'mercury',
             'data': b'alternative',
@@ -617,15 +616,33 @@ class TestEnsureFiles(unittest.TestCase):
                     'id': 'Paper', 'version_vector': {}, 'file_hashes': {},
                 }, os.path.join(write_to_dir, file_ops.META_FILE))
 
-                with unittest.mock.patch('builtins.input', spec_set=True,
-                        return_value='y') as input_p:
-                    read_from_ts = file_ops.read_tree_status(read_from_dir)
-                    write_to_ts = file_ops.read_tree_status(write_to_dir)
-                    self.assertTrue(file_ops.ensure_files(
-                        read_from_ts=read_from_ts,
-                        write_to_ts=write_to_ts))
-                    input_p.assert_called_once_with(
-                            'Change "Paper"? [y/N] ')
+                stdout = io.StringIO()
+                with contextlib.redirect_stdout(stdout):
+                    with unittest.mock.patch('builtins.input', spec_set=True,
+                            return_value='y') as input_p:
+                        read_from_ts = file_ops.read_tree_status(read_from_dir)
+                        write_to_ts = file_ops.read_tree_status(write_to_dir)
+                        self.assertTrue(file_ops.ensure_files(
+                            read_from_ts=read_from_ts,
+                            write_to_ts=write_to_ts))
+                        input_p.assert_called_once_with(
+                                'Change "Paper"? [y/N] ')
+                self.assertEqual(stdout.getvalue(), '''• Add:
++ "glass/watch"
++ "glass/window"
++ "letter"
++ "tomato"
+
+• Delete:
+- "carrot"
+- "glass"
+- "letter/a"
+- "letter/b"
+
+• Overwrite:
+≠ "data"
+
+''')
 
                 for p in read_from_dir, write_to_dir:
                     self.assertEqual(file_ops.hash_file_tree(p), read_hashes)
