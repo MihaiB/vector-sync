@@ -409,7 +409,7 @@ class TestConfirm(unittest.TestCase):
     def test_no(self):
         for answer in '', 'n', 'N', 'x':
             with unittest.mock.patch('builtins.input', spec_set=True,
-                    return_value=answer) as input_p:
+                    return_value=answer):
                 self.assertFalse(file_ops.confirm('some text'))
 
 
