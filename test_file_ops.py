@@ -1083,6 +1083,7 @@ class TestSyncFileTrees(unittest.TestCase):
                 check()
                 with self.assertRaisesRegex(Exception,
                         '^"Almond" and "Berry" have diverged,'
-                        + ' make their files identical first$'):
+                        + ' make their files identical'
+                        + ' then run the sync again$'):
                     file_ops.sync_file_trees(a, b)
                 check()

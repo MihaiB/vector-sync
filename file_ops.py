@@ -331,7 +331,8 @@ def sync_file_trees(path_a, path_b):
         read_from_ts = a
     else:
         raise Exception(f'{json.dumps(a["id"])} and {json.dumps(b["id"])}'
-                + ' have diverged, make their files identical first')
+                + ' have diverged, make their files identical'
+                + ' then run the sync again')
 
     written = False
 
