@@ -6,4 +6,4 @@ def init(args):
 
 
 def sync(args):
-    raise NotImplementedError()
+    file_ops.sync_file_trees('.', args.path)
