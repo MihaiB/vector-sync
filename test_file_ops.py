@@ -1033,3 +1033,56 @@ class TestSyncFileTrees(unittest.TestCase):
         for flip_args in False, True:
             run(flip_args)
         del flip_args
+
+    def test_diverged(self):
+        tree_a = {'todo': b'tasks'}
+        hashes_a = {'todo': hash_bytes(tree_a['todo'])}
+        vv_a = {'Almond': 3, 'Berry': 5}
+
+        tree_b = {'shopping': b'items'}
+        disk_hashes_b = {'shopping': hash_bytes(tree_b['shopping'])}
+        known_hashes_b = {'other': hash_bytes(b'state')}
+        vv_b = {'Almond': 2, 'Berry': 5}
+
+        with tempfile.TemporaryDirectory() as a:
+            # ‘a’ has no local changes
+            create_files(tree_a, a)
+            file_ops.write_meta_data({
+                'id': 'Almond',
+                'version_vector': vv_a,
+                'file_hashes': hashes_a,
+            }, os.path.join(a, file_ops.META_FILE))
+
+            with tempfile.TemporaryDirectory() as b:
+                # ‘b’ starts behind ‘a’ and diverges by having local changes.
+                create_files(tree_b, b)
+                file_ops.write_meta_data({
+                    'id': 'Berry',
+                    'version_vector': vv_b,
+                    'file_hashes': known_hashes_b,
+                }, os.path.join(b, file_ops.META_FILE))
+
+                def check():
+                    self.assertEqual(file_ops.read_tree_status(a), {
+                        'path': a,
+                        'id': 'Almond',
+                        'pre_vv': vv_a,
+                        'known_hashes': hashes_a,
+                        'disk_hashes': hashes_a,
+                        'post_vv': vv_a,
+                    })
+                    self.assertEqual(file_ops.read_tree_status(b), {
+                        'path': b,
+                        'id': 'Berry',
+                        'pre_vv': vv_b,
+                        'known_hashes': known_hashes_b,
+                        'disk_hashes': disk_hashes_b,
+                        'post_vv': versionvectors.advance('Berry', vv_b),
+                    })
+
+                check()
+                with self.assertRaisesRegex(Exception,
+                        '^"Almond" and "Berry" have diverged,'
+                        + ' make their files identical first$'):
+                    file_ops.sync_file_trees(a, b)
+                check()

@@ -1,2 +1,0 @@
-def sync(args):
-    file_ops.sync_file_trees('.', args.path)
